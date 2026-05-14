@@ -149,16 +149,20 @@ def create_app(
         top_k: int,
         video_id: str,
     ) -> tuple[str, pd.DataFrame, list[str], str | None]:
-        video_filter = video_id.strip() if scope == SCOPE_IN_VIDEO else None
-        if mode == "text-only":
-            raw = text_search(client, bge, query, collection_name, top_k, video_filter)
-            rows = [format_result(item, i + 1) for i, item in enumerate(raw)]
-        elif mode == "image-only":
-            raw = image_search(client, siglip, query, collection_name, top_k, video_filter)
-            rows = [format_result(item, i + 1) for i, item in enumerate(raw)]
-        else:
-            raw = hybrid_search(client, bge, siglip, query, collection_name, top_k=top_k, video_id=video_filter)
-            rows = [format_result(item, i + 1) for i, item in enumerate(raw)]
+        try:
+            video_filter = video_id.strip() if scope == SCOPE_IN_VIDEO else None
+            if mode == "text-only":
+                raw = text_search(client, bge, query, collection_name, top_k, video_filter)
+                rows = [format_result(item, i + 1) for i, item in enumerate(raw)]
+            elif mode == "image-only":
+                raw = image_search(client, siglip, query, collection_name, top_k, video_filter)
+                rows = [format_result(item, i + 1) for i, item in enumerate(raw)]
+            else:
+                raw = hybrid_search(client, bge, siglip, query, collection_name, top_k=top_k, video_id=video_filter)
+                rows = [format_result(item, i + 1) for i, item in enumerate(raw)]
+        except Exception as exc:
+            empty = pd.DataFrame(columns=DISPLAY_COLUMNS)
+            return f"Search failed: `{type(exc).__name__}: {exc}`", empty, [], None
 
         frames = [row["frame_path"] for row in rows if row.get("frame_path") and os.path.exists(row["frame_path"])]
         table = pd.DataFrame(rows)
@@ -169,7 +173,7 @@ def create_app(
         return make_top_card(top_row, clip_message), table, frames, clip_path
 
     with gr.Blocks(title="Cooking Shorts Multimodal Search") as demo:
-        gr.Markdown("# Cooking Shorts Multimodal Search MVP")
+        gr.Markdown("# Cooking Shorts Multimodal Search")
         query = gr.Textbox(label="Query", value=DEFAULT_QUERY)
         with gr.Row():
             for example in EXAMPLE_QUERIES:
@@ -195,4 +199,3 @@ def create_app(
 
 if __name__ == "__main__":
     create_app().launch()
-
