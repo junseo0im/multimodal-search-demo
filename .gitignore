@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Local env
+.env
+.venv/
+venv/
+
+# Data and model artifacts
+data/
+*.parquet
+*.pkl
+*.npy
+*.npz
+*.pt
+*.pth
+*.safetensors
+videos/
+frames/
+embeddings/
+checkpoints/
+models/
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# Local planning notes. Keep the public repository focused on README.md.
+README_MVP.md
+PROJECT_DIRECTION.md
+TECHNICAL_IMPLEMENTATION_PLAN.md
+MVP_IMPLEMENTATION_GUIDE.md
+COLLABORATION_WORKFLOW.md
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

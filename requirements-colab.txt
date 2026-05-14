@@ -1,0 +1,14 @@
+qdrant-client>=1.10.0
+FlagEmbedding>=1.2
+transformers>=4.45
+peft>=0.12
+accelerate>=0.33
+torch
+torchvision
+torchao>=0.16.0
+pandas
+pyarrow
+numpy
+Pillow
+gradio
+opencv-python
