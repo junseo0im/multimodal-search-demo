@@ -10,7 +10,7 @@ __pycache__/
 venv/
 
 # Data and model artifacts
-data/
+/data/
 *.parquet
 *.pkl
 *.npy
@@ -18,11 +18,11 @@ data/
 *.pt
 *.pth
 *.safetensors
-videos/
-frames/
-embeddings/
-checkpoints/
-models/
+/videos/
+/frames/
+/embeddings/
+/checkpoints/
+/models/
 
 # Notebook checkpoints
 .ipynb_checkpoints/
