@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -38,6 +39,7 @@ DEFAULT_QUERY = "\ub300\ud30c \ub123\ub294 \uc7a5\uba74"
 SCOPE_ALL = "\uc804\uccb4 \uc601\uc0c1 \uac80\uc0c9"
 SCOPE_IN_VIDEO = "\ud2b9\uc815 video_id \ub0b4\ubd80 \uac80\uc0c9"
 CLIP_DIR = Path("/tmp/cooking_search_clips")
+FRAME_CACHE_DIR = Path("/tmp/cooking_search_frames")
 
 
 def format_result(candidate: Any, rank: int) -> dict[str, Any]:
@@ -130,6 +132,20 @@ def create_clip(row: dict[str, Any] | None) -> tuple[str | None, str]:
     return str(clip_path), "Generated a Top-1 preview clip."
 
 
+def cache_frame_for_gradio(frame_path: str, rank: int) -> str | None:
+    if not frame_path or not os.path.exists(frame_path):
+        return None
+
+    FRAME_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    source = Path(frame_path)
+    target = FRAME_CACHE_DIR / f"{rank:02d}_{source.name}"
+    try:
+        shutil.copy2(source, target)
+    except OSError:
+        return None
+    return str(target)
+
+
 def create_app(
     collection_name: str = COLLECTION_NAME,
     adapter_path: str | None = None,
@@ -164,7 +180,11 @@ def create_app(
             empty = pd.DataFrame(columns=DISPLAY_COLUMNS)
             return f"Search failed: `{type(exc).__name__}: {exc}`", empty, [], None
 
-        frames = [row["frame_path"] for row in rows if row.get("frame_path") and os.path.exists(row["frame_path"])]
+        frames = [
+            cached
+            for row in rows
+            if (cached := cache_frame_for_gradio(str(row.get("frame_path", "")), int(row.get("rank", 0))))
+        ]
         table = pd.DataFrame(rows)
         table = pd.DataFrame(columns=DISPLAY_COLUMNS) if table.empty else table[DISPLAY_COLUMNS]
 
