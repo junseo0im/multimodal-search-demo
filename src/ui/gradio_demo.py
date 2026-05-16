@@ -5,10 +5,12 @@ import shutil
 import subprocess
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 import gradio as gr
 import pandas as pd
 
+from src.generation.answer_generator import generate_answer
 from src.index.build_index import COLLECTION_NAME
 from src.index.qdrant_client import get_qdrant_client
 from src.models.bge_encoder import BGEEncoder
@@ -40,6 +42,7 @@ SCOPE_ALL = "\uc804\uccb4 \uc601\uc0c1 \uac80\uc0c9"
 SCOPE_IN_VIDEO = "\ud2b9\uc815 video_id \ub0b4\ubd80 \uac80\uc0c9"
 CLIP_DIR = Path("/tmp/cooking_search_clips")
 FRAME_CACHE_DIR = Path("/tmp/cooking_search_frames")
+FULL_VIDEO_CACHE_DIR = Path("/tmp/cooking_search_full_videos")
 
 
 def format_result(candidate: Any, rank: int) -> dict[str, Any]:
@@ -224,6 +227,41 @@ def create_clip(row: dict[str, Any] | None) -> tuple[str | None, str]:
     return str(clip_path), "Generated a Top-1 preview clip."
 
 
+def cache_full_video_for_gradio(video_path: str, video_id: str) -> str | None:
+    if not video_path or not os.path.exists(video_path):
+        return None
+
+    FULL_VIDEO_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    source = Path(video_path)
+    safe_video_id = (video_id or source.stem).replace("/", "_").replace("\\", "_")
+    target = FULL_VIDEO_CACHE_DIR / f"{safe_video_id}{source.suffix or '.mp4'}"
+    try:
+        if not target.exists() or target.stat().st_size != source.stat().st_size:
+            shutil.copy2(source, target)
+    except OSError:
+        return None
+    return str(target)
+
+
+def make_full_video_html(row: dict[str, Any] | None) -> str:
+    if not row:
+        return "<p>No full video preview is available.</p>"
+
+    cached = cache_full_video_for_gradio(str(row.get("video_path", "")), str(row.get("video_id", "")))
+    if not cached:
+        return "<p>Full video preview is unavailable. Use the clip preview and result table instead.</p>"
+
+    start_time = max(0.0, float(row.get("start_time", 0.0) or 0.0))
+    label = f"{row.get('recipe_name', '')} / {row.get('video_id', '')} / {row.get('time', '')}"
+    file_url = quote(cached)
+    return f"""
+<div>
+  <p><strong>Full video at timestamp</strong><br>{label}</p>
+  <video controls preload="metadata" style="width: 100%; max-height: 520px;" src="/file={file_url}#t={start_time:.1f}"></video>
+</div>
+""".strip()
+
+
 def cache_frame_for_gradio(frame_path: str, rank: int) -> str | None:
     if not frame_path or not os.path.exists(frame_path):
         return None
@@ -255,7 +293,7 @@ def create_app(
         top_k: int,
         video_id: str,
         show_debug: bool,
-    ) -> tuple[str, str, pd.DataFrame, list[str], str | None, str]:
+    ) -> tuple[str, str, str, pd.DataFrame, list[str], str | None, str, str]:
         try:
             result = unified_search(
                 client,
@@ -269,7 +307,7 @@ def create_app(
             rows = [format_result(item, i + 1) for i, item in enumerate(result.scenes)]
         except Exception as exc:
             empty = pd.DataFrame(columns=DISPLAY_COLUMNS)
-            return f"Search failed: `{type(exc).__name__}: {exc}`", "", empty, [], None, ""
+            return f"Search failed: `{type(exc).__name__}: {exc}`", "", "", empty, [], None, "", ""
 
         frames = [
             cached
@@ -289,9 +327,11 @@ def create_app(
         else:
             clip_path, clip_message = create_clip(top_row)
             top_card = make_top_card(top_row, result, clip_message)
+        generated_answer = generate_answer(query, result) if result.result_type == "summary" else ""
+        full_video_html = make_full_video_html(top_row)
         videos_card = make_videos_card(result)
         debug_card = make_debug_card(result) if show_debug else ""
-        return top_card, videos_card, table, frames, clip_path, debug_card
+        return top_card, generated_answer, videos_card, table, frames, clip_path, full_video_html, debug_card
 
     with gr.Blocks(title="Cooking Shorts Multimodal Search") as demo:
         gr.Markdown("# Cooking Shorts Multimodal Search")
@@ -306,7 +346,9 @@ def create_app(
 
         button = gr.Button("Search")
         top_card = gr.Markdown(label="Top Answer")
+        generated_answer = gr.Markdown(label="Generated Answer")
         clip = gr.Video(label="Top-1 clip preview")
+        full_video = gr.HTML(label="Full Video at Timestamp")
         videos_card = gr.Markdown(label="Related Videos")
         table = gr.Dataframe(label="Related Scenes", wrap=True, interactive=False)
         gallery = gr.Gallery(label="Representative frames")
@@ -315,7 +357,7 @@ def create_app(
         button.click(
             run,
             inputs=[query, top_k, video_id, show_debug],
-            outputs=[top_card, videos_card, table, gallery, clip, debug_card],
+            outputs=[top_card, generated_answer, videos_card, table, gallery, clip, full_video, debug_card],
         )
     return demo
 

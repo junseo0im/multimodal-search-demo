@@ -127,6 +127,8 @@ The Gradio demo includes:
 - Top-K result table
 - representative frame gallery
 - Top-1 preview clip generated from the Drive mp4
+- generated answers for summary-style queries when `GEMINI_API_KEY` is available
+- full-video preview near the matched timestamp when the source mp4 is accessible
 
 ## Evaluation
 
