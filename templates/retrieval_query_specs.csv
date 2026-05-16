@@ -1,0 +1,41 @@
+﻿query,query_type,expected_intent,expected_result_type,recipe_keywords,scene_keywords,target_video_id,notes
+돌솥비빔밥 영상 찾아줘,recipe,video_search,video,돌솥비빔밥,,,데이터셋 recipe_name 기반 자동 생성
+돼지갈비찜 영상 찾아줘,recipe,video_search,video,돼지갈비찜,,,데이터셋 recipe_name 기반 자동 생성
+감자조림 영상 찾아줘,recipe,video_search,video,감자조림,,,데이터셋 recipe_name 기반 자동 생성
+김치볶음 영상 찾아줘,recipe,video_search,video,김치볶음,,,데이터셋 recipe_name 기반 자동 생성
+두부짜글이 영상 찾아줘,recipe,video_search,video,두부짜글이,,,데이터셋 recipe_name 기반 자동 생성
+두부김치볶음 영상 찾아줘,recipe,video_search,video,두부김치볶음,,,데이터셋 recipe_name 기반 자동 생성
+어묵볶음 영상 찾아줘,recipe,video_search,video,어묵볶음,,,데이터셋 recipe_name 기반 자동 생성
+청국장 영상 찾아줘,recipe,video_search,video,청국장,,,데이터셋 recipe_name 기반 자동 생성
+김치 넣는 장면,ingredient_action,scene_search,scene,,김치+넣,,caption/metadata 키워드 기반 자동 생성
+두부 넣는 장면,ingredient_action,scene_search,scene,,두부+넣,,caption/metadata 키워드 기반 자동 생성
+계란 넣는 장면,ingredient_action,scene_search,scene,,계란+넣,,caption/metadata 키워드 기반 자동 생성
+간장 넣는 장면,ingredient_action,scene_search,scene,,간장+넣,,caption/metadata 키워드 기반 자동 생성
+마늘 넣는 장면,ingredient_action,scene_search,scene,,마늘+넣,,caption/metadata 키워드 기반 자동 생성
+대파 넣는 장면,ingredient_action,scene_search,scene,,대파+넣,,caption/metadata 키워드 기반 자동 생성
+양파 넣는 장면,ingredient_action,scene_search,scene,,양파+넣,,caption/metadata 키워드 기반 자동 생성
+된장 넣는 장면,ingredient_action,scene_search,scene,,된장+넣,,caption/metadata 키워드 기반 자동 생성
+고춧가루 넣는 장면,ingredient_action,scene_search,scene,,고춧가루+넣,,caption/metadata 키워드 기반 자동 생성
+고추장 넣는 장면,ingredient_action,scene_search,scene,,고추장+넣,,caption/metadata 키워드 기반 자동 생성
+재료를 넣는 장면,ingredient_action,scene_search,scene,,넣,,caption/metadata 키워드 기반 자동 생성
+볶는 장면,ingredient_action,scene_search,scene,,볶,,caption/metadata 키워드 기반 자동 생성
+담는 장면,ingredient_action,scene_search,scene,,담,,caption/metadata 키워드 기반 자동 생성
+섞는 장면,ingredient_action,scene_search,scene,,섞,,caption/metadata 키워드 기반 자동 생성
+볶아진 장면,visual_state,scene_search,scene,,볶,,시각 상태 키워드 기반 자동 생성. 프레임 검수 필요
+완성된 장면,visual_state,scene_search,scene,,완성,,시각 상태 키워드 기반 자동 생성. 프레임 검수 필요
+끓고 있는 장면,visual_state,scene_search,scene,,끓,,시각 상태 키워드 기반 자동 생성. 프레임 검수 필요
+그릇에 담긴 장면,visual_state,scene_search,scene,,담긴,,시각 상태 키워드 기반 자동 생성. 프레임 검수 필요
+그릇에 담긴 완성 장면,visual_state,scene_search,scene,,그릇,,시각 상태 키워드 기반 자동 생성. 프레임 검수 필요
+재료가 익은 장면,visual_state,scene_search,scene,,익,,시각 상태 키워드 기반 자동 생성. 프레임 검수 필요
+노릇하게 익은 장면,visual_state,scene_search,scene,,노릇,,시각 상태 키워드 기반 자동 생성. 프레임 검수 필요
+구워진 장면,visual_state,scene_search,scene,,굽,,시각 상태 키워드 기반 자동 생성. 프레임 검수 필요
+국물이 졸아든 장면,visual_state,scene_search,scene,,졸,,시각 상태 키워드 기반 자동 생성. 프레임 검수 필요
+보글보글 끓는 장면,visual_state,scene_search,scene,,보글,,시각 상태 키워드 기반 자동 생성. 프레임 검수 필요
+돌솥비빔밥 영상에서 고추장 넣는 장면,compound,compound_scene_search,compound,돌솥비빔밥,고추장+넣,,동일 recipe 내 실제 caption 키워드 기반 자동 생성
+돼지갈비찜 영상에서 간장 넣는 장면,compound,compound_scene_search,compound,돼지갈비찜,간장+넣,,동일 recipe 내 실제 caption 키워드 기반 자동 생성
+감자조림 영상에서 간장 넣는 장면,compound,compound_scene_search,compound,감자조림,간장+넣,,동일 recipe 내 실제 caption 키워드 기반 자동 생성
+김치볶음 영상에서 김치 넣는 장면,compound,compound_scene_search,compound,김치볶음,김치+넣,,동일 recipe 내 실제 caption 키워드 기반 자동 생성
+두부짜글이 영상에서 고춧가루 넣는 장면,compound,compound_scene_search,compound,두부짜글이,고춧가루+넣,,동일 recipe 내 실제 caption 키워드 기반 자동 생성
+두부김치볶음 영상에서 김치 넣는 장면,compound,compound_scene_search,compound,두부김치볶음,김치+넣,,동일 recipe 내 실제 caption 키워드 기반 자동 생성
+어묵볶음 영상에서 간장 넣는 장면,compound,compound_scene_search,compound,어묵볶음,간장+넣,,동일 recipe 내 실제 caption 키워드 기반 자동 생성
+청국장 영상에서 김치 넣는 장면,compound,compound_scene_search,compound,청국장,김치+넣,,동일 recipe 내 실제 caption 키워드 기반 자동 생성

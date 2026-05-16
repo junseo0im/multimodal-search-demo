@@ -1,4 +1,4 @@
-from src.eval.metrics import TimeRange, mean_reciprocal_rank, recall_at_k, temporal_iou
+from src.eval.metrics import TimeRange, mean_reciprocal_rank, rank_for_video_ids, recall_at_k, temporal_iou
 
 
 def test_temporal_iou_same_video():
@@ -17,3 +17,7 @@ def test_rank_metrics():
     assert recall_at_k(ranks, 5) == 2 / 3
     assert mean_reciprocal_rank(ranks) == (1 + 0.2) / 3
 
+
+def test_rank_for_video_ids_deduplicates_candidates():
+    rank = rank_for_video_ids(["short_001", "short_001", "short_003"], {"short_003"})
+    assert rank == 2

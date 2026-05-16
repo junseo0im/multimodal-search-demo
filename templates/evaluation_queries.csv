@@ -1,0 +1,16 @@
+query,query_type,expected_intent,expected_result_type,positive_segments,target_video_id,notes
+김치찌개 영상 찾아줘,recipe,video_search,video,"[{""video_id"": ""short_001"", ""start_time"": 0.0, ""end_time"": 10.0}]",,영상 검색 예시. positive segment는 실제 정답 구간으로 수정 필요
+계란 요리 쇼츠 보여줘,recipe,video_search,video,"[{""video_id"": ""short_002"", ""start_time"": 0.0, ""end_time"": 10.0}]",,영상 검색 예시. 실제 video_id로 수정
+대파 넣는 장면,ingredient_action,scene_search,scene,"[{""video_id"": ""short_003"", ""start_time"": 10.0, ""end_time"": 14.0}]",,재료 투입 장면
+프라이팬에 볶는 부분,ingredient_action,scene_search,scene,"[{""video_id"": ""short_004"", ""start_time"": 18.0, ""end_time"": 24.0}]",,조리 동작 장면
+김치찌개 영상에서 대파 넣는 장면 보여줘,compound,compound_scene_search,compound,"[{""video_id"": ""short_001"", ""start_time"": 10.0, ""end_time"": 14.0}]",,복합 질의
+떡볶이 쇼츠 중에 고추장 넣는 부분,compound,compound_scene_search,compound,"[{""video_id"": ""short_005"", ""start_time"": 12.0, ""end_time"": 16.0}]",,복합 질의
+양념 넣는 장면,ingredient_action,in_video_search,in_video,"[{""video_id"": ""short_075"", ""start_time"": 20.0, ""end_time"": 25.0}]",short_075,video_id 필터 기반 영상 내 검색
+이 영상에서 완성 장면,visual_state,in_video_search,in_video,"[{""video_id"": ""short_075"", ""start_time"": 45.0, ""end_time"": 50.0}]",short_075,현재 영상 context 기반
+노릇하게 구워진 장면,visual_state,scene_search,scene,"[{""video_id"": ""short_006"", ""start_time"": 30.0, ""end_time"": 35.0}]",,시각 상태 질의
+그릇에 담긴 완성 장면,visual_state,scene_search,scene,"[{""video_id"": ""short_007"", ""start_time"": 40.0, ""end_time"": 45.0}]",,완성 컷 질의
+이 영상 재료 정리해줘,summary,summary,summary,"[{""video_id"": ""short_075"", ""start_time"": 0.0, ""end_time"": 50.0}]",short_075,요약/재료 정리
+몇 분 끓여?,timing,summary,summary,"[{""video_id"": ""short_008"", ""start_time"": 20.0, ""end_time"": 30.0}]",,시간/정량 정보 질의
+그 장면 보여줘,ambiguous,in_video_search,in_video,"[{""video_id"": ""short_075"", ""start_time"": 10.0, ""end_time"": 15.0}]",short_075,모호한 context 질의
+라자냐 만드는 영상,recipe,video_search,video,"[{""video_id"": ""short_009"", ""start_time"": 0.0, ""end_time"": 10.0}]",,데이터셋에 없으면 low confidence 확인용으로 수정
+빨간 양념이 보이는 장면,visual_state,scene_search,scene,"[{""video_id"": ""short_010"", ""start_time"": 15.0, ""end_time"": 20.0}]",,시각 중심 질의

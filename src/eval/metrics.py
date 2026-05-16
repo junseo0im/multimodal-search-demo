@@ -29,3 +29,17 @@ def mean_reciprocal_rank(ranks: list[int | None]) -> float:
         return 0.0
     return sum((1.0 / rank) if rank else 0.0 for rank in ranks) / len(ranks)
 
+
+def rank_for_video_ids(candidate_video_ids: list[str], positive_video_ids: set[str]) -> int | None:
+    if not positive_video_ids:
+        return None
+    seen: set[str] = set()
+    rank = 0
+    for video_id in candidate_video_ids:
+        if not video_id or video_id in seen:
+            continue
+        seen.add(video_id)
+        rank += 1
+        if video_id in positive_video_ids:
+            return rank
+    return None
