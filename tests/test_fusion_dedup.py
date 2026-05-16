@@ -21,7 +21,7 @@ def test_fuse_results_unions_and_scores():
 
 
 def test_weights_for_query_prefers_text_for_action():
-    alpha, beta = weights_for_query("대파 넣는 타이밍")
+    alpha, beta = weights_for_query("\ub300\ud30c \ub123\ub294 \uc7a5\uba74")
     assert alpha > beta
 
 
@@ -33,4 +33,3 @@ def test_dedup_adjacent_same_video():
     ]
     kept = dedup_adjacent(candidates, top_k=5, overlap_threshold=2)
     assert [item.point_id for item in kept] == ["a", "c"]
-

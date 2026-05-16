@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from src.search.query_analyzer import weights_for_query as analyze_weights
+
 
 @dataclass
 class ScoredCandidate:
@@ -57,13 +59,5 @@ def fuse_results(
 
 
 def weights_for_query(query: str) -> tuple[float, float]:
-    visual_terms = ("보이는", "장면", "색", "모양", "완성", "비주얼", "프라이팬", "그릇")
-    text_terms = ("넣", "볶", "끓", "섞", "자르", "타이밍", "몇 분", "언제", "재료")
-    visual_hits = sum(term in query for term in visual_terms)
-    text_hits = sum(term in query for term in text_terms)
-    if visual_hits > text_hits:
-        return 0.4, 0.6
-    if text_hits > visual_hits:
-        return 0.7, 0.3
-    return 0.6, 0.4
-
+    weights = analyze_weights(query)
+    return weights.text, weights.image

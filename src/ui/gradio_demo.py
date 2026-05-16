@@ -13,7 +13,7 @@ from src.index.build_index import COLLECTION_NAME
 from src.index.qdrant_client import get_qdrant_client
 from src.models.bge_encoder import BGEEncoder
 from src.models.siglip_encoder import SigLIPEncoder
-from src.search.hybrid_search import hybrid_search, image_search, text_search
+from src.search.unified_search import UnifiedSearchResult, unified_search
 
 
 DISPLAY_COLUMNS = [
@@ -89,6 +89,41 @@ def make_top_card(row: dict[str, Any] | None, clip_message: str = "") -> str:
     return "\n".join(lines)
 
 
+def make_videos_card(result: UnifiedSearchResult) -> str:
+    if not result.videos:
+        return "No related videos."
+    lines = ["### Related Videos"]
+    for idx, video in enumerate(result.videos, start=1):
+        title = video.recipe_name or "(no recipe name)"
+        line = f"{idx}. **{title}** - `{video.video_id}` - score `{video.score:.4f}`"
+        if video.scene_count:
+            line += f" - scenes `{video.scene_count}`"
+        if video.youtube_url:
+            line += f" - {video.youtube_url}"
+        lines.append(line)
+    return "\n".join(lines)
+
+
+def make_debug_card(result: UnifiedSearchResult) -> str:
+    plan = result.plan
+    lines = [
+        "### Analyzer Debug",
+        f"- **analyzer:** `{plan.analyzer}`",
+        f"- **intent:** `{plan.intent}`",
+        f"- **scope:** `{plan.scope}`",
+        f"- **query_type:** `{plan.query_type}`",
+        f"- **video_query:** {plan.video_query or '(none)'}",
+        f"- **scene_query:** {plan.scene_query or '(none)'}",
+        f"- **weights:** text `{plan.weights.text:.2f}` / image `{plan.weights.image:.2f}`",
+        f"- **needs_generation:** `{plan.needs_generation}`",
+    ]
+    if plan.fallback_reason:
+        lines.append(f"- **fallback:** {plan.fallback_reason}")
+    if result.answer_context:
+        lines.extend(["", "### Answer-Ready Context", "```text", result.answer_context, "```"])
+    return "\n".join(lines)
+
+
 def create_clip(row: dict[str, Any] | None) -> tuple[str | None, str]:
     if not row:
         return None, ""
@@ -160,25 +195,24 @@ def create_app(
 
     def run(
         query: str,
-        mode: str,
-        scope: str,
         top_k: int,
         video_id: str,
-    ) -> tuple[str, pd.DataFrame, list[str], str | None]:
+        show_debug: bool,
+    ) -> tuple[str, str, pd.DataFrame, list[str], str | None, str]:
         try:
-            video_filter = video_id.strip() if scope == SCOPE_IN_VIDEO else None
-            if mode == "text-only":
-                raw = text_search(client, bge, query, collection_name, top_k, video_filter)
-                rows = [format_result(item, i + 1) for i, item in enumerate(raw)]
-            elif mode == "image-only":
-                raw = image_search(client, siglip, query, collection_name, top_k, video_filter)
-                rows = [format_result(item, i + 1) for i, item in enumerate(raw)]
-            else:
-                raw = hybrid_search(client, bge, siglip, query, collection_name, top_k=top_k, video_id=video_filter)
-                rows = [format_result(item, i + 1) for i, item in enumerate(raw)]
+            result = unified_search(
+                client,
+                bge,
+                siglip,
+                query,
+                collection_name,
+                top_k=top_k,
+                optional_video_id=video_id.strip() or None,
+            )
+            rows = [format_result(item, i + 1) for i, item in enumerate(result.scenes)]
         except Exception as exc:
             empty = pd.DataFrame(columns=DISPLAY_COLUMNS)
-            return f"Search failed: `{type(exc).__name__}: {exc}`", empty, [], None
+            return f"Search failed: `{type(exc).__name__}: {exc}`", "", empty, [], None, ""
 
         frames = [
             cached
@@ -190,7 +224,10 @@ def create_app(
 
         top_row = rows[0] if rows else None
         clip_path, clip_message = create_clip(top_row)
-        return make_top_card(top_row, clip_message), table, frames, clip_path
+        top_card = make_top_card(top_row, clip_message)
+        videos_card = make_videos_card(result)
+        debug_card = make_debug_card(result) if show_debug else ""
+        return top_card, videos_card, table, frames, clip_path, debug_card
 
     with gr.Blocks(title="Cooking Shorts Multimodal Search") as demo:
         gr.Markdown("# Cooking Shorts Multimodal Search")
@@ -199,20 +236,22 @@ def create_app(
             for example in EXAMPLE_QUERIES:
                 gr.Button(example).click(lambda value=example: value, outputs=query)
         with gr.Row():
-            mode = gr.Radio(["hybrid", "text-only", "image-only"], value="hybrid", label="Search mode")
-            scope = gr.Radio([SCOPE_ALL, SCOPE_IN_VIDEO], value=SCOPE_ALL, label="Search scope")
             top_k = gr.Slider(1, 10, value=5, step=1, label="Top K")
             video_id = gr.Textbox(label="Optional video_id filter", placeholder="short_001")
+            show_debug = gr.Checkbox(value=True, label="Show analyzer debug")
 
         button = gr.Button("Search")
-        top_card = gr.Markdown(label="Top-1 result")
+        top_card = gr.Markdown(label="Top Answer")
         clip = gr.Video(label="Top-1 clip preview")
-        table = gr.Dataframe(label="Results", wrap=True, interactive=False)
+        videos_card = gr.Markdown(label="Related Videos")
+        table = gr.Dataframe(label="Related Scenes", wrap=True, interactive=False)
         gallery = gr.Gallery(label="Representative frames")
+        with gr.Accordion("Advanced", open=True):
+            debug_card = gr.Markdown(label="Analyzer Debug")
         button.click(
             run,
-            inputs=[query, mode, scope, top_k, video_id],
-            outputs=[top_card, table, gallery, clip],
+            inputs=[query, top_k, video_id, show_debug],
+            outputs=[top_card, videos_card, table, gallery, clip, debug_card],
         )
     return demo
 

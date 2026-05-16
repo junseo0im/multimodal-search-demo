@@ -21,6 +21,7 @@ metadata JSON / URL CSV
   -> fine-tuned SigLIP2 image embeddings
   -> BGE-M3 text embeddings
   -> Qdrant Cloud index
+  -> query analyzer
   -> Gradio search demo
 ```
 
@@ -42,13 +43,13 @@ Each Qdrant point represents one scene segment or representative keyframe. The p
 
 ### Hybrid retrieval
 
-The demo exposes three modes:
+The demo exposes a unified search flow:
 
-- `text-only`
-- `image-only`
-- `hybrid`
+- unified natural-language search
+- optional `video_id` filtering
+- analyzer debug for inspecting the chosen search strategy
 
-Hybrid search normalizes text and image scores separately, then combines them with a weighted sum. The current implementation also keeps the individual scores visible so search behavior can be inspected during demos.
+The current implementation uses a query analyzer to choose the search intent, scope, and text/image fusion weights. Gemini can be used for query analysis when an API key is available; otherwise the demo falls back to a rule-based analyzer. The individual scores remain visible so search behavior can be inspected during demos.
 
 ## Repository Structure
 
@@ -84,6 +85,7 @@ Set these Colab Secrets:
 ```text
 QDRANT_URL
 QDRANT_API_KEY
+GEMINI_API_KEY  # optional; rule-based analyzer is used when omitted
 ```
 
 Expected Google Drive layout:
@@ -148,4 +150,3 @@ text-only vs image-only vs hybrid
 - Source metadata remains in Google Drive JSON/CSV/Parquet files.
 - Videos, frames, adapters, generated embeddings, and other large artifacts should not be committed.
 - The indexing notebook can recreate the Qdrant collection; the demo notebook only reads from the existing collection.
-
