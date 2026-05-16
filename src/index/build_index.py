@@ -16,16 +16,29 @@ from src.models.siglip_encoder import SigLIPEncoder
 COLLECTION_NAME = "cooking_segments"
 IMAGE_VECTOR = "image_siglip"
 TEXT_VECTOR = "text_bge"
+OPTIONAL_TEXT_FIELDS = ("title_text", "asr_text", "ocr_text", "scene_caption")
 
 
 def stable_point_id(segment_id: str) -> str:
     return str(uuid.uuid5(uuid.NAMESPACE_URL, f"cooking-segment:{segment_id}"))
 
 
+def _clean_text(value: object) -> str:
+    if value is None or pd.isna(value):
+        return ""
+    return str(value).strip()
+
+
 def make_search_text(row: pd.Series) -> str:
-    recipe = str(row.get("recipe_name", "")).strip()
-    caption = str(row.get("caption", "")).strip()
-    return f"{recipe}. {caption}".strip(". ")
+    parts = [_clean_text(row.get("recipe_name", ""))]
+    for field in OPTIONAL_TEXT_FIELDS:
+        value = _clean_text(row.get(field, ""))
+        if value:
+            parts.append(value)
+    caption = _clean_text(row.get("scene_caption", "")) or _clean_text(row.get("caption", ""))
+    if caption and caption not in parts:
+        parts.append(caption)
+    return ". ".join(part for part in parts if part).strip(". ")
 
 
 def create_collection(
@@ -90,6 +103,10 @@ def build_and_upsert(
                 "video_path": row["video_path"],
                 "youtube_url": row["youtube_url"],
             }
+            for field in OPTIONAL_TEXT_FIELDS:
+                value = _clean_text(row.get(field, ""))
+                if value:
+                    payload[field] = value
             points.append(
                 models.PointStruct(
                     id=stable_point_id(str(row["segment_id"])),
@@ -122,4 +139,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

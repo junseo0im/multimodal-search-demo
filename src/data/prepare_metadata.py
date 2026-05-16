@@ -22,6 +22,13 @@ REQUIRED_COLUMNS = [
     "youtube_url",
 ]
 
+OPTIONAL_TEXT_COLUMNS = [
+    "title_text",
+    "asr_text",
+    "ocr_text",
+    "scene_caption",
+]
+
 
 def load_json_records(path: str | Path) -> list[dict[str, Any]]:
     """Load a JSON file expected to contain a list of segment records."""
@@ -86,6 +93,11 @@ def build_segments(
         start_time = float(rec.get("start_time", current_time) or current_time)
         end_time = float(rec.get("end_time", current_time) or current_time)
         caption = str(rec.get("caption", "")).strip()
+        optional_text = {
+            col: str(rec.get(col, "") or "").strip()
+            for col in OPTIONAL_TEXT_COLUMNS
+            if str(rec.get(col, "") or "").strip()
+        }
         segment_id = f"{video_id}_{int(round(current_time * 1000)):08d}_{_frame_sort_key(Path(frame_path).stem)}"
         rows.append(
             {
@@ -97,6 +109,7 @@ def build_segments(
                 "current_time": current_time,
                 "frame_path": frame_path,
                 "video_path": video_path,
+                **optional_text,
             }
         )
 
@@ -107,7 +120,11 @@ def build_segments(
     df = df.merge(urls, on="video_id", how="left")
     df["recipe_name"] = df["recipe_name"].fillna("")
     df["youtube_url"] = df["youtube_url"].fillna("")
-    df = df[REQUIRED_COLUMNS]
+    for col in OPTIONAL_TEXT_COLUMNS:
+        if col not in df.columns:
+            df[col] = ""
+        df[col] = df[col].fillna("")
+    df = df[REQUIRED_COLUMNS + OPTIONAL_TEXT_COLUMNS]
     return df.sort_values(["video_id", "current_time", "segment_id"]).reset_index(drop=True)
 
 

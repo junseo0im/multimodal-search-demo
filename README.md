@@ -70,6 +70,9 @@ src/
 
 tests/
   lightweight unit tests for ranking and metric helpers
+
+templates/
+  editable evaluation query templates
 ```
 
 ## Setup
@@ -122,8 +125,8 @@ After the Qdrant index has been built, normal demo iteration only needs:
 
 The Gradio demo includes:
 
-- search mode selection
-- whole-collection search or `video_id`-filtered search
+- unified natural-language search
+- optional `video_id`-filtered search
 - Top-K result table
 - representative frame gallery
 - Top-1 preview clip generated from the Drive mp4
@@ -132,9 +135,9 @@ The Gradio demo includes:
 
 ## Evaluation
 
-`04_run_eval.ipynb` is prepared for pipeline-level evaluation using query records with positive time ranges.
+`templates/evaluation_queries.csv` provides a human-editable starting point for pipeline-level evaluation. Each row contains a natural-language query, expected routing labels, and positive time ranges.
 
-Planned metrics:
+Retrieval metrics:
 
 - Recall@K
 - MRR
@@ -143,7 +146,19 @@ Planned metrics:
 The main comparison is:
 
 ```text
-text-only vs image-only vs hybrid
+text-only vs image-only vs hybrid vs unified
+```
+
+Run retrieval evaluation:
+
+```bash
+python -m src.eval.run_eval --queries templates/evaluation_queries.csv --adapter-path /path/to/siglip2_lora_qv_r16_best
+```
+
+Run Query Analyzer evaluation:
+
+```bash
+python -m src.eval.analyzer_eval --queries templates/evaluation_queries.csv
 ```
 
 ## Notes

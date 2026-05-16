@@ -328,6 +328,8 @@ def create_app(
             clip_path, clip_message = create_clip(top_row)
             top_card = make_top_card(top_row, result, clip_message)
         generated_answer = generate_answer(query, result) if result.result_type == "summary" else ""
+        if not generated_answer:
+            generated_answer = "요약/추천형 질의에서 검색 결과 기반 답변이 표시됩니다."
         full_video_html = make_full_video_html(top_row)
         videos_card = make_videos_card(result)
         debug_card = make_debug_card(result) if show_debug else ""
@@ -335,24 +337,25 @@ def create_app(
 
     with gr.Blocks(title="Cooking Shorts Multimodal Search") as demo:
         gr.Markdown("# Cooking Shorts Multimodal Search")
-        query = gr.Textbox(label="Query", value=DEFAULT_QUERY)
+        query = gr.Textbox(label="무엇을 찾고 싶나요?", value=DEFAULT_QUERY)
         with gr.Row():
             for example in EXAMPLE_QUERIES:
                 gr.Button(example).click(lambda value=example: value, outputs=query)
         with gr.Row():
             top_k = gr.Slider(1, 10, value=5, step=1, label="Top K")
-            video_id = gr.Textbox(label="Optional video_id filter", placeholder="short_001")
-            show_debug = gr.Checkbox(value=True, label="Show analyzer debug")
+            video_id = gr.Textbox(label="특정 영상 안에서 찾기", placeholder="short_001")
+            show_debug = gr.Checkbox(value=False, label="Show analyzer debug")
 
-        button = gr.Button("Search")
+        button = gr.Button("Search", variant="primary")
         top_card = gr.Markdown(label="Top Answer")
         generated_answer = gr.Markdown(label="Generated Answer")
-        clip = gr.Video(label="Top-1 clip preview")
-        full_video = gr.HTML(label="Full Video at Timestamp")
+        with gr.Row():
+            clip = gr.Video(label="Top-1 clip preview")
+            full_video = gr.HTML(label="Full Video at Timestamp")
         videos_card = gr.Markdown(label="Related Videos")
         table = gr.Dataframe(label="Related Scenes", wrap=True, interactive=False)
         gallery = gr.Gallery(label="Representative frames")
-        with gr.Accordion("Advanced", open=True):
+        with gr.Accordion("Advanced", open=False):
             debug_card = gr.Markdown(label="Analyzer Debug")
         button.click(
             run,

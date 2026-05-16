@@ -14,6 +14,40 @@ from src.index.qdrant_client import get_qdrant_client
 from src.models.bge_encoder import BGEEncoder
 from src.models.siglip_encoder import SigLIPEncoder
 from src.search.hybrid_search import hybrid_search, image_search, text_search
+from src.search.unified_search import unified_search
+
+
+REQUIRED_QUERY_COLUMNS = [
+    "query",
+    "query_type",
+    "expected_intent",
+    "expected_result_type",
+    "positive_segments",
+    "target_video_id",
+    "notes",
+]
+
+
+def load_eval_queries(path: str | Path) -> pd.DataFrame:
+    path = Path(path)
+    if path.suffix.lower() == ".csv":
+        queries = pd.read_csv(path, encoding="utf-8-sig").fillna("")
+    elif path.suffix.lower() in {".parquet", ".pq"}:
+        queries = pd.read_parquet(path).fillna("")
+    else:
+        raise ValueError(f"Unsupported query file format: {path.suffix}")
+    validate_eval_queries(queries)
+    return queries
+
+
+def validate_eval_queries(queries: pd.DataFrame) -> None:
+    missing = [col for col in REQUIRED_QUERY_COLUMNS if col not in queries.columns]
+    if missing:
+        raise ValueError(f"Evaluation queries missing columns: {missing}")
+    for idx, value in enumerate(queries["positive_segments"].tolist(), start=1):
+        segments = _load_positive_segments(value)
+        if not segments:
+            raise ValueError(f"Row {idx} has no positive segments")
 
 
 def _load_positive_segments(value: Any) -> list[TimeRange]:
@@ -74,6 +108,17 @@ def evaluate_queries(
             results = image_search(client, siglip, query, collection_name, top_k, video_id)
         elif mode == "hybrid":
             results = hybrid_search(client, bge, siglip, query, collection_name, top_k=top_k, video_id=video_id)
+        elif mode == "unified":
+            unified = unified_search(
+                client,
+                bge,
+                siglip,
+                query,
+                collection_name=collection_name,
+                top_k=top_k,
+                optional_video_id=video_id,
+            )
+            results = unified.scenes
         else:
             raise ValueError(f"Unknown mode: {mode}")
         rank, best_iou = _rank_for_results(results, positives, iou_threshold)
@@ -90,24 +135,29 @@ def evaluate_queries(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Evaluate MVP search pipeline")
-    parser.add_argument("--queries", required=True, help="Path to evaluation_queries.parquet")
+    parser = argparse.ArgumentParser(description="Evaluate search pipeline")
+    parser.add_argument("--queries", required=True, help="Path to evaluation query CSV or Parquet")
     parser.add_argument("--adapter-path", required=True)
     parser.add_argument("--collection", default=COLLECTION_NAME)
     parser.add_argument("--top-k", type=int, default=5)
+    parser.add_argument("--modes", nargs="+", default=["text-only", "image-only", "hybrid", "unified"])
+    parser.add_argument("--output-csv", default="")
     args = parser.parse_args()
 
-    queries = pd.read_parquet(Path(args.queries))
+    queries = load_eval_queries(Path(args.queries))
     client = get_qdrant_client()
     bge = BGEEncoder()
     siglip = SigLIPEncoder(adapter_path=args.adapter_path)
     rows = [
         evaluate_queries(queries, client, bge, siglip, mode, args.collection, args.top_k)
-        for mode in ("text-only", "image-only", "hybrid")
+        for mode in args.modes
     ]
-    print(pd.DataFrame(rows).to_string(index=False))
+    result_df = pd.DataFrame(rows)
+    print(result_df.to_string(index=False))
+    if args.output_csv:
+        Path(args.output_csv).parent.mkdir(parents=True, exist_ok=True)
+        result_df.to_csv(args.output_csv, index=False, encoding="utf-8-sig")
 
 
 if __name__ == "__main__":
     main()
-
