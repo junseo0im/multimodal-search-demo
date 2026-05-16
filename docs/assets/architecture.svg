@@ -1,64 +1,104 @@
-<svg width="1120" height="420" viewBox="0 0 1120 420" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="1120" height="420" rx="18" fill="#F7F8FA"/>
-  <text x="48" y="58" fill="#111827" font-family="Arial, sans-serif" font-size="28" font-weight="700">Cooking Shorts Multimodal Search Pipeline</text>
-  <text x="48" y="88" fill="#4B5563" font-family="Arial, sans-serif" font-size="15">Scene-level retrieval over Korean cooking short-form videos</text>
+<svg width="1280" height="720" viewBox="0 0 1280 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1280" height="720" rx="28" fill="#F6F6F3"/>
+  <rect x="24" y="24" width="1232" height="672" rx="24" fill="#FBFBF8" stroke="#D7D7D0"/>
 
   <defs>
-    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
-      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#111827" flood-opacity="0.12"/>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#111111" flood-opacity="0.10"/>
     </filter>
-    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L0,6 L9,3 z" fill="#64748B"/>
+    <marker id="arrowDark" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M1 1L11 6L1 11V1Z" fill="#2F3437"/>
+    </marker>
+    <marker id="arrowMuted" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M1 1L11 6L1 11V1Z" fill="#7B817F"/>
     </marker>
   </defs>
 
-  <g filter="url(#shadow)">
-    <rect x="48" y="142" width="158" height="96" rx="12" fill="#FFFFFF"/>
-    <text x="72" y="179" fill="#111827" font-family="Arial, sans-serif" font-size="17" font-weight="700">Dataset</text>
-    <text x="72" y="207" fill="#475569" font-family="Arial, sans-serif" font-size="14">videos, frames</text>
-    <text x="72" y="228" fill="#475569" font-family="Arial, sans-serif" font-size="14">JSON / CSV</text>
+  <text x="64" y="76" fill="#151817" font-family="Inter, Arial, sans-serif" font-size="30" font-weight="760">Domain-adapted Multimodal Retrieval Pipeline</text>
+  <text x="64" y="106" fill="#656B68" font-family="Inter, Arial, sans-serif" font-size="15">Cooking short-form videos indexed as scene-level segments with text, visual, and query-analysis signals</text>
+
+  <rect x="64" y="138" width="548" height="454" rx="18" fill="#EFEFEB" stroke="#D3D3CC"/>
+  <text x="92" y="174" fill="#2F3437" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="700" letter-spacing="1.6">OFFLINE INDEXING</text>
+
+  <rect x="668" y="138" width="548" height="454" rx="18" fill="#EFEFEB" stroke="#D3D3CC"/>
+  <text x="696" y="174" fill="#2F3437" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="700" letter-spacing="1.6">ONLINE RETRIEVAL</text>
+
+  <g filter="url(#softShadow)">
+    <rect x="92" y="214" width="184" height="118" rx="14" fill="#FFFFFF" stroke="#C9CBC5"/>
+    <text x="118" y="249" fill="#171A19" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="740">Cooking Shorts</text>
+    <text x="118" y="278" fill="#5A615E" font-family="Inter, Arial, sans-serif" font-size="14">200 videos</text>
+    <text x="118" y="300" fill="#5A615E" font-family="Inter, Arial, sans-serif" font-size="14">frames / metadata</text>
   </g>
 
-  <g filter="url(#shadow)">
-    <rect x="258" y="142" width="170" height="96" rx="12" fill="#FFFFFF"/>
-    <text x="282" y="179" fill="#111827" font-family="Arial, sans-serif" font-size="17" font-weight="700">Segments</text>
-    <text x="282" y="207" fill="#475569" font-family="Arial, sans-serif" font-size="14">canonical metadata</text>
-    <text x="282" y="228" fill="#475569" font-family="Arial, sans-serif" font-size="14">1 point = 1 scene</text>
+  <g filter="url(#softShadow)">
+    <rect x="354" y="214" width="208" height="118" rx="14" fill="#FFFFFF" stroke="#C9CBC5"/>
+    <text x="380" y="249" fill="#171A19" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="740">Segment Builder</text>
+    <text x="380" y="278" fill="#5A615E" font-family="Inter, Arial, sans-serif" font-size="14">canonical metadata</text>
+    <text x="380" y="300" fill="#5A615E" font-family="Inter, Arial, sans-serif" font-size="14">1 point = 1 scene</text>
   </g>
 
-  <g filter="url(#shadow)">
-    <rect x="480" y="112" width="188" height="88" rx="12" fill="#FFFFFF"/>
-    <text x="504" y="148" fill="#111827" font-family="Arial, sans-serif" font-size="17" font-weight="700">Text Encoder</text>
-    <text x="504" y="176" fill="#475569" font-family="Arial, sans-serif" font-size="14">BGE-M3 embeddings</text>
+  <g filter="url(#softShadow)">
+    <rect x="92" y="398" width="208" height="126" rx="14" fill="#FFFFFF" stroke="#C9CBC5"/>
+    <text x="118" y="433" fill="#171A19" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="740">Text Branch</text>
+    <text x="118" y="462" fill="#5A615E" font-family="Inter, Arial, sans-serif" font-size="14">BGE-M3</text>
+    <text x="118" y="484" fill="#5A615E" font-family="Inter, Arial, sans-serif" font-size="14">recipe + caption</text>
   </g>
 
-  <g filter="url(#shadow)">
-    <rect x="480" y="222" width="188" height="88" rx="12" fill="#FFFFFF"/>
-    <text x="504" y="258" fill="#111827" font-family="Arial, sans-serif" font-size="17" font-weight="700">Image Encoder</text>
-    <text x="504" y="286" fill="#475569" font-family="Arial, sans-serif" font-size="14">fine-tuned SigLIP2</text>
+  <g filter="url(#softShadow)">
+    <rect x="354" y="398" width="208" height="126" rx="14" fill="#FFFFFF" stroke="#C9CBC5"/>
+    <text x="380" y="433" fill="#171A19" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="740">Visual Branch</text>
+    <text x="380" y="462" fill="#5A615E" font-family="Inter, Arial, sans-serif" font-size="14">fine-tuned SigLIP2</text>
+    <text x="380" y="484" fill="#5A615E" font-family="Inter, Arial, sans-serif" font-size="14">Recipe1M LoRA adapter</text>
   </g>
 
-  <g filter="url(#shadow)">
-    <rect x="720" y="142" width="160" height="96" rx="12" fill="#FFFFFF"/>
-    <text x="744" y="179" fill="#111827" font-family="Arial, sans-serif" font-size="17" font-weight="700">Qdrant Cloud</text>
-    <text x="744" y="207" fill="#475569" font-family="Arial, sans-serif" font-size="14">named vectors</text>
-    <text x="744" y="228" fill="#475569" font-family="Arial, sans-serif" font-size="14">payload filters</text>
+  <g filter="url(#softShadow)">
+    <rect x="536" y="286" width="156" height="156" rx="18" fill="#2F3437"/>
+    <text x="574" y="344" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="19" font-weight="760">Qdrant</text>
+    <text x="573" y="373" fill="#DDE1DD" font-family="Inter, Arial, sans-serif" font-size="14">Cloud index</text>
+    <text x="573" y="396" fill="#DDE1DD" font-family="Inter, Arial, sans-serif" font-size="14">named vectors</text>
   </g>
 
-  <g filter="url(#shadow)">
-    <rect x="932" y="142" width="140" height="96" rx="12" fill="#FFFFFF"/>
-    <text x="956" y="179" fill="#111827" font-family="Arial, sans-serif" font-size="17" font-weight="700">Demo</text>
-    <text x="956" y="207" fill="#475569" font-family="Arial, sans-serif" font-size="14">query analyzer</text>
-    <text x="956" y="228" fill="#475569" font-family="Arial, sans-serif" font-size="14">Gradio UI</text>
+  <g filter="url(#softShadow)">
+    <rect x="716" y="214" width="186" height="118" rx="14" fill="#FFFFFF" stroke="#C9CBC5"/>
+    <text x="742" y="249" fill="#171A19" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="740">User Query</text>
+    <text x="742" y="278" fill="#5A615E" font-family="Inter, Arial, sans-serif" font-size="14">natural language</text>
+    <text x="742" y="300" fill="#5A615E" font-family="Inter, Arial, sans-serif" font-size="14">optional video_id</text>
   </g>
 
-  <line x1="206" y1="190" x2="248" y2="190" stroke="#64748B" stroke-width="2.5" marker-end="url(#arrow)"/>
-  <line x1="428" y1="190" x2="470" y2="164" stroke="#64748B" stroke-width="2.5" marker-end="url(#arrow)"/>
-  <line x1="428" y1="190" x2="470" y2="260" stroke="#64748B" stroke-width="2.5" marker-end="url(#arrow)"/>
-  <line x1="668" y1="156" x2="710" y2="178" stroke="#64748B" stroke-width="2.5" marker-end="url(#arrow)"/>
-  <line x1="668" y1="266" x2="710" y2="204" stroke="#64748B" stroke-width="2.5" marker-end="url(#arrow)"/>
-  <line x1="880" y1="190" x2="922" y2="190" stroke="#64748B" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <g filter="url(#softShadow)">
+    <rect x="982" y="214" width="186" height="118" rx="14" fill="#FFFFFF" stroke="#C9CBC5"/>
+    <text x="1008" y="249" fill="#171A19" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="740">Query Analyzer</text>
+    <text x="1008" y="278" fill="#5A615E" font-family="Inter, Arial, sans-serif" font-size="14">intent / scope</text>
+    <text x="1008" y="300" fill="#5A615E" font-family="Inter, Arial, sans-serif" font-size="14">text-image weights</text>
+  </g>
 
-  <rect x="48" y="344" width="1024" height="38" rx="8" fill="#E5E7EB"/>
-  <text x="70" y="368" fill="#374151" font-family="Arial, sans-serif" font-size="14">Evaluation compares text-only, image-only, hybrid, and unified retrieval on video-level and scene-level queries.</text>
+  <g filter="url(#softShadow)">
+    <rect x="716" y="398" width="210" height="126" rx="14" fill="#FFFFFF" stroke="#C9CBC5"/>
+    <text x="742" y="433" fill="#171A19" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="740">Hybrid Retrieval</text>
+    <text x="742" y="462" fill="#5A615E" font-family="Inter, Arial, sans-serif" font-size="14">text + visual fusion</text>
+    <text x="742" y="484" fill="#5A615E" font-family="Inter, Arial, sans-serif" font-size="14">dedup / video grouping</text>
+  </g>
+
+  <g filter="url(#softShadow)">
+    <rect x="984" y="398" width="184" height="126" rx="14" fill="#FFFFFF" stroke="#C9CBC5"/>
+    <text x="1010" y="433" fill="#171A19" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="740">Outputs</text>
+    <text x="1010" y="462" fill="#5A615E" font-family="Inter, Arial, sans-serif" font-size="14">Gradio demo</text>
+    <text x="1010" y="484" fill="#5A615E" font-family="Inter, Arial, sans-serif" font-size="14">evaluation reports</text>
+  </g>
+
+  <path d="M276 273H344" stroke="#2F3437" stroke-width="2.4" marker-end="url(#arrowDark)"/>
+  <path d="M458 332V388" stroke="#7B817F" stroke-width="2.2" marker-end="url(#arrowMuted)"/>
+  <path d="M354 461H310" stroke="#7B817F" stroke-width="2.2" marker-end="url(#arrowMuted)"/>
+  <path d="M300 461H528" stroke="#2F3437" stroke-width="2.4" marker-end="url(#arrowDark)"/>
+  <path d="M562 461H596V452" stroke="#2F3437" stroke-width="2.4" marker-end="url(#arrowDark)"/>
+  <path d="M562 332H596V296" stroke="#2F3437" stroke-width="2.4" marker-end="url(#arrowDark)"/>
+
+  <path d="M902 273H972" stroke="#2F3437" stroke-width="2.4" marker-end="url(#arrowDark)"/>
+  <path d="M1075 332V389" stroke="#7B817F" stroke-width="2.2" marker-end="url(#arrowMuted)"/>
+  <path d="M982 461H936" stroke="#7B817F" stroke-width="2.2" marker-end="url(#arrowMuted)"/>
+  <path d="M692 364H706C742 364 758 380 776 397" stroke="#2F3437" stroke-width="2.4" marker-end="url(#arrowDark)"/>
+  <path d="M926 461H974" stroke="#2F3437" stroke-width="2.4" marker-end="url(#arrowDark)"/>
+
+  <rect x="64" y="620" width="1152" height="42" rx="12" fill="#E8E8E2" stroke="#D1D3CC"/>
+  <text x="92" y="646" fill="#3D4240" font-family="Inter, Arial, sans-serif" font-size="14">Evaluation axis: text-only vs image-only vs hybrid vs unified, measured separately for video-level and scene-level retrieval.</text>
 </svg>
