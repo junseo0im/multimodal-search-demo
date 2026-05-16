@@ -135,13 +135,42 @@ The Gradio demo includes:
 
 ## Evaluation
 
-`templates/evaluation_queries.csv` provides a human-editable starting point for pipeline-level evaluation. Each row contains a natural-language query, expected routing labels, and positive time ranges.
+The quantitative evaluation is intentionally limited to retrieval questions that can be judged with stable ground truth:
+
+- video search, such as finding a saved kimchi-jjigae short
+- ingredient/action scene search, such as finding the moment green onion is added
+- visual-state scene search, such as finding a plated or browned scene
+- compound search, such as finding a moment inside a matched recipe video
+
+Summary, recommendation, follow-up, and ambiguous context queries are evaluated qualitatively in the demo instead of being mixed into retrieval metrics.
+
+By default, the evaluation builder reads `canonical_segments.parquet` and creates query specs from recipes and captions that actually appear in the dataset. It can also read `master_keyframe_dataset2.json` directly when `shorts_urls.csv` is passed for recipe names.
+
+```bash
+python -m src.eval.build_retrieval_eval_template \
+  --segments /path/to/canonical_segments.parquet \
+  --output data/eval/retrieval_eval_queries_draft.csv
+```
+
+Raw JSON/CSV version:
+
+```bash
+python -m src.eval.build_retrieval_eval_template \
+  --segments /path/to/master_keyframe_dataset2.json \
+  --urls /path/to/shorts_urls.csv \
+  --output data/eval/retrieval_eval_queries_draft.csv
+```
+
+`templates/retrieval_query_specs.csv` and `templates/retrieval_eval_queries_draft.csv` are dataset-derived starting points from the current 200-video collection. Manually verify the positive videos and time ranges before reporting scores.
+
+The generated file includes all columns from `templates/retrieval_eval_queries.csv`, plus review helpers such as `auto_match_count` and `needs_review`. It uses `positive_segments` for scene-level evaluation and `positive_video_ids` for video-level evaluation.
 
 Retrieval metrics:
 
 - Recall@K
 - MRR
-- temporal mIoU
+- temporal mIoU for scene-level queries
+- video-id hit rate for video-level queries
 
 The main comparison is:
 
@@ -152,14 +181,21 @@ text-only vs image-only vs hybrid vs unified
 Run retrieval evaluation:
 
 ```bash
-python -m src.eval.run_eval --queries templates/evaluation_queries.csv --adapter-path /path/to/siglip2_lora_qv_r16_best
+python -m src.eval.run_eval \
+  --queries data/eval/retrieval_eval_queries_draft.csv \
+  --adapter-path /path/to/siglip2_lora_qv_r16_best \
+  --output-csv data/eval/retrieval_eval_results.csv
 ```
 
 Run Query Analyzer evaluation:
 
 ```bash
-python -m src.eval.analyzer_eval --queries templates/evaluation_queries.csv
+python -m src.eval.analyzer_eval \
+  --queries data/eval/retrieval_eval_queries_draft.csv \
+  --output-csv data/eval/analyzer_eval_results.csv
 ```
+
+The current segment-level design is kept for evaluation because cooking search is often moment-oriented. Video-level search is measured by aggregating segment results by `video_id`. Future evaluation improvements should focus on adjacent-segment merging, multi-keyframe segment embeddings, ASR/OCR time alignment, and caption quality checks.
 
 ## Notes
 
