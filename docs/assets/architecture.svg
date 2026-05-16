@@ -1,0 +1,64 @@
+<svg width="1120" height="420" viewBox="0 0 1120 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1120" height="420" rx="18" fill="#F7F8FA"/>
+  <text x="48" y="58" fill="#111827" font-family="Arial, sans-serif" font-size="28" font-weight="700">Cooking Shorts Multimodal Search Pipeline</text>
+  <text x="48" y="88" fill="#4B5563" font-family="Arial, sans-serif" font-size="15">Scene-level retrieval over Korean cooking short-form videos</text>
+
+  <defs>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#111827" flood-opacity="0.12"/>
+    </filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#64748B"/>
+    </marker>
+  </defs>
+
+  <g filter="url(#shadow)">
+    <rect x="48" y="142" width="158" height="96" rx="12" fill="#FFFFFF"/>
+    <text x="72" y="179" fill="#111827" font-family="Arial, sans-serif" font-size="17" font-weight="700">Dataset</text>
+    <text x="72" y="207" fill="#475569" font-family="Arial, sans-serif" font-size="14">videos, frames</text>
+    <text x="72" y="228" fill="#475569" font-family="Arial, sans-serif" font-size="14">JSON / CSV</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="258" y="142" width="170" height="96" rx="12" fill="#FFFFFF"/>
+    <text x="282" y="179" fill="#111827" font-family="Arial, sans-serif" font-size="17" font-weight="700">Segments</text>
+    <text x="282" y="207" fill="#475569" font-family="Arial, sans-serif" font-size="14">canonical metadata</text>
+    <text x="282" y="228" fill="#475569" font-family="Arial, sans-serif" font-size="14">1 point = 1 scene</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="480" y="112" width="188" height="88" rx="12" fill="#FFFFFF"/>
+    <text x="504" y="148" fill="#111827" font-family="Arial, sans-serif" font-size="17" font-weight="700">Text Encoder</text>
+    <text x="504" y="176" fill="#475569" font-family="Arial, sans-serif" font-size="14">BGE-M3 embeddings</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="480" y="222" width="188" height="88" rx="12" fill="#FFFFFF"/>
+    <text x="504" y="258" fill="#111827" font-family="Arial, sans-serif" font-size="17" font-weight="700">Image Encoder</text>
+    <text x="504" y="286" fill="#475569" font-family="Arial, sans-serif" font-size="14">fine-tuned SigLIP2</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="720" y="142" width="160" height="96" rx="12" fill="#FFFFFF"/>
+    <text x="744" y="179" fill="#111827" font-family="Arial, sans-serif" font-size="17" font-weight="700">Qdrant Cloud</text>
+    <text x="744" y="207" fill="#475569" font-family="Arial, sans-serif" font-size="14">named vectors</text>
+    <text x="744" y="228" fill="#475569" font-family="Arial, sans-serif" font-size="14">payload filters</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="932" y="142" width="140" height="96" rx="12" fill="#FFFFFF"/>
+    <text x="956" y="179" fill="#111827" font-family="Arial, sans-serif" font-size="17" font-weight="700">Demo</text>
+    <text x="956" y="207" fill="#475569" font-family="Arial, sans-serif" font-size="14">query analyzer</text>
+    <text x="956" y="228" fill="#475569" font-family="Arial, sans-serif" font-size="14">Gradio UI</text>
+  </g>
+
+  <line x1="206" y1="190" x2="248" y2="190" stroke="#64748B" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <line x1="428" y1="190" x2="470" y2="164" stroke="#64748B" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <line x1="428" y1="190" x2="470" y2="260" stroke="#64748B" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <line x1="668" y1="156" x2="710" y2="178" stroke="#64748B" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <line x1="668" y1="266" x2="710" y2="204" stroke="#64748B" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <line x1="880" y1="190" x2="922" y2="190" stroke="#64748B" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+  <rect x="48" y="344" width="1024" height="38" rx="8" fill="#E5E7EB"/>
+  <text x="70" y="368" fill="#374151" font-family="Arial, sans-serif" font-size="14">Evaluation compares text-only, image-only, hybrid, and unified retrieval on video-level and scene-level queries.</text>
+</svg>

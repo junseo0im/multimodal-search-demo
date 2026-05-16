@@ -2,6 +2,8 @@
 
 A scene-level search demo for Korean cooking short-form videos. The system indexes short videos as searchable scene segments, then combines text retrieval and visual retrieval to find the most relevant moment for a natural-language query.
 
+![Pipeline overview](docs/assets/architecture.svg)
+
 ## Overview
 
 Short-form cooking videos often contain useful information in very small time windows: ingredient preparation, seasoning, cooking actions, and final plating. A saved video list can tell you which videos you have, but it usually cannot answer questions such as "where does the cook add green onion?" or "which moment shows the finished dish?"
@@ -12,6 +14,18 @@ This project supports two related retrieval tasks:
 - **In-video search**: restrict the search to a specific `video_id` and find the relevant moment inside that video.
 
 The first target domain is Korean cooking videos because cooking has clear temporal structure and many practical scene-level queries.
+
+## Demo Examples
+
+The demo is designed around a single natural-language search box. Users do not need to choose between text search, image search, or hybrid search manually.
+
+| User query | Expected behavior |
+| --- | --- |
+| `돌솥비빔밥 영상 찾아줘` | Return video-level candidates grouped by `video_id`. |
+| `대파 넣는 장면` | Return the most relevant scene clips across all videos. |
+| `돌솥비빔밥 영상에서 계란 넣는 장면` | First match the recipe video, then search for the target moment inside it. |
+| `short_075` + `양념 넣는 장면` | Restrict retrieval to a specific video and return in-video moments. |
+| `이 영상 재료 정리해줘` | Use retrieved scenes as context for a generated summary when Gemini is available. |
 
 ## Pipeline
 
