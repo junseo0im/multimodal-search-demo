@@ -1,19 +1,19 @@
 # Cooking Shorts Multimodal Search
 
-한국어 요리 쇼츠 영상을 대상으로 한 멀티모달 장면 검색 데모입니다. 수집한 쇼츠를 영상 단위가 아니라 검색 가능한 scene segment 단위로 인덱싱하고, 텍스트 검색과 이미지 검색을 함께 사용해 사용자의 자연어 질의에 맞는 영상 또는 장면을 찾아줍니다.
+A scene-level search demo for Korean cooking short-form videos. The system indexes short videos as searchable scene segments, then combines text retrieval and visual retrieval to find the most relevant moment for a natural-language query.
 
-## 프로젝트 개요
+## Overview
 
-요리 쇼츠는 재료 손질, 양념 투입, 조리 동작, 완성 장면처럼 짧은 시간 구간에 중요한 정보가 모여 있습니다. 단순히 저장된 영상 목록만으로는 “대파 넣는 장면”, “완성된 장면”, “돌솥비빔밥 영상에서 계란 넣는 부분” 같은 질의에 답하기 어렵습니다.
+Short-form cooking videos often contain useful information in very small time windows: ingredient preparation, seasoning, cooking actions, and final plating. A saved video list can tell you which videos you have, but it usually cannot answer questions such as "where does the cook add green onion?" or "which moment shows the finished dish?"
 
-이 프로젝트는 두 가지 검색 상황을 함께 다룹니다.
+This project supports two related retrieval tasks:
 
-- **영상 간 검색**: 전체 쇼츠 컬렉션에서 관련 영상 또는 장면을 찾습니다.
-- **영상 내 검색**: 특정 `video_id` 안에서 사용자가 원하는 장면을 찾습니다.
+- **Across-video search**: find relevant videos or scenes across the whole collection.
+- **In-video search**: restrict the search to a specific `video_id` and find the relevant moment inside that video.
 
-현재 1차 도메인은 한국어 요리 쇼츠입니다. 요리 영상은 절차와 장면 구분이 비교적 명확하고, 실제 사용자가 장면 단위로 찾고 싶은 요구가 많기 때문에 검색 데모와 평가에 적합합니다.
+The first target domain is Korean cooking videos because cooking has clear temporal structure and many practical scene-level queries.
 
-## 전체 파이프라인
+## Pipeline
 
 ```text
 metadata JSON / URL CSV
@@ -25,35 +25,33 @@ metadata JSON / URL CSV
   -> Gradio search demo
 ```
 
-Qdrant에는 `1 point = 1 scene segment/keyframe` 구조로 저장합니다. payload에는 `video_id`, `recipe_name`, `caption`, 시간 구간, 대표 프레임 경로, 원본 영상 경로, YouTube URL 등 데모와 평가에 필요한 최소 정보를 둡니다.
+Each Qdrant point represents one scene segment or representative keyframe. The payload stores the video id, caption, time range, frame path, video path, recipe name, and YouTube URL.
 
-## 검색 구조
+## Retrieval
 
-### 이미지 기반 검색
+### Image-side retrieval
 
 - Base model: `google/siglip2-base-patch16-224`
-- Adapter: Recipe1M 기반으로 학습한 cooking-domain LoRA adapter
-- 역할: 대표 프레임 이미지를 임베딩하고, 질의는 SigLIP2 text encoder로 임베딩해 이미지 측면의 관련 장면을 찾습니다.
+- Adapter: cooking-domain LoRA adapter
+- Purpose: embed representative frames and compare them with the query encoded by the SigLIP2 text encoder.
 
-### 텍스트 기반 검색
+### Text-side retrieval
 
 - Model: `BAAI/bge-m3`
-- 입력 텍스트: `recipe_name`, `caption`, 선택적으로 `title_text`, `asr_text`, `ocr_text`, `scene_caption`
-- 역할: 영상 제목/음식명/자막/캡션에 드러나는 조리 정보와 의미적으로 가까운 장면을 찾습니다.
+- Input text: `{recipe_name}. {caption}`
+- Purpose: retrieve scenes using semantic text similarity over recipe names and scene captions.
 
-### 하이브리드 검색
+### Hybrid retrieval
 
-현재 데모는 사용자가 검색 모드를 직접 고르지 않아도 되는 통합 검색 흐름을 사용합니다.
+The demo exposes a unified search flow:
 
-- 자연어 질의 입력
-- 선택적 `video_id` 필터
-- Query Analyzer를 통한 intent/scope/weight 결정
-- text/image 검색 결과 fusion
-- 장면 중복 제거 및 영상 후보 집계
+- unified natural-language search
+- optional `video_id` filtering
+- analyzer debug for inspecting the chosen search strategy
 
-`GEMINI_API_KEY`가 있으면 Gemini 기반 Query Analyzer와 summary 답변 생성을 사용할 수 있습니다. API key가 없으면 rule-based fallback으로 검색 데모는 계속 동작합니다.
+The current implementation uses a query analyzer to choose the search intent, scope, and text/image fusion weights. Gemini can be used for query analysis when an API key is available; otherwise the demo falls back to a rule-based analyzer. The individual scores remain visible so search behavior can be inspected during demos.
 
-## 저장소 구조
+## Repository Structure
 
 ```text
 notebooks/
@@ -63,38 +61,37 @@ notebooks/
   04_run_eval.ipynb
 
 src/
-  data/        metadata preparation
-  models/      BGE-M3 / SigLIP2 encoder wrappers
-  index/       Qdrant Cloud indexing
-  search/      text/image/hybrid search, fusion, query analyzer
-  generation/  Gemini answer generation
-  ui/          Gradio demo
-  eval/        evaluation dataset builder, metrics, runner
-
-templates/
-  evaluation query templates and dataset-derived draft queries
+  data/      metadata preparation
+  models/    BGE-M3 and SigLIP2 encoder wrappers
+  index/     Qdrant Cloud indexing
+  search/    text/image/hybrid search, fusion, deduplication
+  ui/        Gradio demo
+  eval/      evaluation metrics and runner
 
 tests/
-  lightweight unit tests
+  lightweight unit tests for ranking and metric helpers
+
+templates/
+  editable evaluation query templates
 ```
 
-## 실행 환경
+## Setup
 
-노트북은 Colab 기준으로 작성되어 있습니다.
+The notebooks are designed for Colab.
 
 ```bash
 pip install -r requirements-colab.txt
 ```
 
-Colab Secrets에는 다음 값을 설정합니다.
+Set these Colab Secrets:
 
 ```text
 QDRANT_URL
 QDRANT_API_KEY
-GEMINI_API_KEY  # optional
+GEMINI_API_KEY  # optional; rule-based analyzer is used when omitted
 ```
 
-기본 Google Drive 구조는 다음을 가정합니다.
+Expected Google Drive layout:
 
 ```text
 MyDrive/
@@ -108,11 +105,11 @@ MyDrive/
     siglip2_lora_qv_r16_best/
 ```
 
-경로가 다르면 각 노트북의 path 변수만 수정하면 됩니다.
+If your Drive layout differs, update the path variables in the notebooks.
 
-## 실행 순서
+## Running
 
-처음 인덱스를 만들 때는 아래 순서로 실행합니다.
+For the first run:
 
 ```text
 01_prepare_metadata.ipynb
@@ -120,37 +117,34 @@ MyDrive/
 03_gradio_demo.ipynb
 ```
 
-Qdrant 인덱스가 이미 만들어진 뒤에는 보통 데모 노트북만 실행하면 됩니다.
+After the Qdrant index has been built, normal demo iteration only needs:
 
 ```text
 03_gradio_demo.ipynb
 ```
 
-Gradio 데모에서 제공하는 주요 기능은 다음과 같습니다.
+The Gradio demo includes:
 
-- 통합 자연어 검색
-- 특정 `video_id` 내부 검색
-- Top-K 결과 테이블
-- 대표 프레임 갤러리
-- Top-1 장면 clip preview
-- 원본 영상 timestamp preview
-- summary 질의에 대한 Gemini 기반 답변 생성
-- Analyzer Debug 확인
+- unified natural-language search
+- optional `video_id`-filtered search
+- Top-K result table
+- representative frame gallery
+- Top-1 preview clip generated from the Drive mp4
+- generated answers for summary-style queries when `GEMINI_API_KEY` is available
+- full-video preview near the matched timestamp when the source mp4 is accessible
 
-## 평가
+## Evaluation
 
-정량 평가는 안정적인 정답을 만들 수 있는 검색 질의로 범위를 제한합니다.
+The quantitative evaluation is intentionally limited to retrieval questions that can be judged with stable ground truth:
 
-- 영상 검색: 예를 들어 `돌솥비빔밥 영상 찾아줘`
-- 재료/동작 장면 검색: 예를 들어 `대파 넣는 장면`
-- 시각 상태 장면 검색: 예를 들어 `완성된 장면`
-- 복합 검색: 예를 들어 `돌솥비빔밥 영상에서 계란 넣는 장면`
+- video search, such as finding a saved kimchi-jjigae short
+- ingredient/action scene search, such as finding the moment green onion is added
+- visual-state scene search, such as finding a plated or browned scene
+- compound search, such as finding a moment inside a matched recipe video
 
-요약, 추천, 후속 대화, “그 장면”처럼 context가 필요한 질의는 정량 검색 평가에 섞지 않고 데모에서 정성적으로 확인합니다.
+Summary, recommendation, follow-up, and ambiguous context queries are evaluated qualitatively in the demo instead of being mixed into retrieval metrics.
 
-### 평가셋 생성
-
-기본적으로 `canonical_segments.parquet`를 읽어서 실제 데이터셋에 등장하는 음식명과 caption 기반으로 평가 질의와 정답 후보를 생성합니다.
+By default, the evaluation builder reads `canonical_segments.parquet` and creates query specs from recipes and captions that actually appear in the dataset. It can also read `master_keyframe_dataset2.json` directly when `shorts_urls.csv` is passed for recipe names.
 
 ```bash
 python -m src.eval.build_retrieval_eval_template \
@@ -158,7 +152,7 @@ python -m src.eval.build_retrieval_eval_template \
   --output data/eval/retrieval_eval_queries_draft.csv
 ```
 
-raw JSON/CSV만 있을 때는 아래처럼 실행할 수 있습니다.
+Raw JSON/CSV version:
 
 ```bash
 python -m src.eval.build_retrieval_eval_template \
@@ -167,22 +161,24 @@ python -m src.eval.build_retrieval_eval_template \
   --output data/eval/retrieval_eval_queries_draft.csv
 ```
 
-현재 저장소의 `templates/retrieval_query_specs.csv`와 `templates/retrieval_eval_queries_draft.csv`는 200개 쇼츠 데이터셋에서 자동 생성한 시작점입니다. 최종 보고서용 수치를 내기 전에는 `positive_segments`, `positive_video_ids`를 사람이 검수하는 것을 권장합니다.
+`templates/retrieval_query_specs.csv` and `templates/retrieval_eval_queries_draft.csv` are dataset-derived starting points from the current 200-video collection. Manually verify the positive videos and time ranges before reporting scores.
 
-### 평가 지표
+The generated file includes all columns from `templates/retrieval_eval_queries.csv`, plus review helpers such as `auto_match_count` and `needs_review`. It uses `positive_segments` for scene-level evaluation and `positive_video_ids` for video-level evaluation.
 
-- `Recall@K`
-- `MRR`
-- scene-level query: temporal mIoU
-- video-level query: video-id hit
+Retrieval metrics:
 
-비교 대상은 다음 네 가지입니다.
+- Recall@K
+- MRR
+- temporal mIoU for scene-level queries
+- video-id hit rate for video-level queries
+
+The main comparison is:
 
 ```text
 text-only vs image-only vs hybrid vs unified
 ```
 
-검색 파이프라인 평가:
+Run retrieval evaluation:
 
 ```bash
 python -m src.eval.run_eval \
@@ -191,7 +187,7 @@ python -m src.eval.run_eval \
   --output-csv data/eval/retrieval_eval_results.csv
 ```
 
-Query Analyzer 평가:
+Run Query Analyzer evaluation:
 
 ```bash
 python -m src.eval.analyzer_eval \
@@ -199,10 +195,11 @@ python -m src.eval.analyzer_eval \
   --output-csv data/eval/analyzer_eval_results.csv
 ```
 
-## 설계 메모
+The current segment-level design is kept for evaluation because cooking search is often moment-oriented. Video-level search is measured by aggregating segment results by `video_id`. Future evaluation improvements should focus on adjacent-segment merging, multi-keyframe segment embeddings, ASR/OCR time alignment, and caption quality checks.
 
-- Qdrant Cloud는 재생성 가능한 검색 인덱스로 사용하며, 원본 metadata의 source of truth는 Drive의 JSON/CSV/Parquet 파일입니다.
-- 영상/프레임/LoRA adapter/embedding 등 큰 파일은 Git에 올리지 않습니다.
-- 현재 평가와 검색은 segment 단위를 기본으로 합니다. 요리 쇼츠는 “넣는 장면”, “볶는 장면”, “완성 장면”처럼 순간 검색 요구가 많기 때문입니다.
-- 영상 단위 검색은 segment 검색 결과를 `video_id` 기준으로 집계해 처리합니다.
-- 향후 개선 후보는 adjacent segment merge, multi-keyframe segment embedding, ASR/OCR time alignment, caption 품질 검수입니다.
+## Notes
+
+- Qdrant Cloud is used as a rebuildable search index, not as the metadata source of truth.
+- Source metadata remains in Google Drive JSON/CSV/Parquet files.
+- Videos, frames, adapters, generated embeddings, and other large artifacts should not be committed.
+- The indexing notebook can recreate the Qdrant collection; the demo notebook only reads from the existing collection.
