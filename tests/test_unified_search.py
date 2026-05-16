@@ -26,7 +26,10 @@ def test_unified_search_routes_scene_search(monkeypatch):
 
     result = unified_search(SimpleNamespace(), SimpleNamespace(), SimpleNamespace(), "\ub300\ud30c \ub123\ub294 \uc7a5\uba74")
     assert result.plan.intent == "scene_search"
+    assert result.result_type == "scene"
     assert result.scenes[0].point_id == "a"
+    assert result.top_score == 1.0
+    assert result.is_low_confidence is False
     assert calls["video_id"] is None
     assert calls["alpha"] == 0.6
 
@@ -58,6 +61,7 @@ def test_unified_search_uses_video_id_filter(monkeypatch):
         optional_video_id="short_001",
     )
     assert result.scenes
+    assert result.result_type == "in_video"
     assert calls["video_id"] == "short_001"
 
 
@@ -90,6 +94,25 @@ def test_unified_search_routes_compound_query(monkeypatch):
 
     result = unified_search(SimpleNamespace(), SimpleNamespace(), SimpleNamespace(), "query")
     assert result.plan.intent == "compound_scene_search"
+    assert result.result_type == "compound"
     assert result.videos[0].video_id == "short_001"
     assert result.scenes[0].payload["video_id"] == "short_001"
     assert calls["video_id"] == "short_001"
+
+
+def test_unified_search_marks_empty_results_low_confidence(monkeypatch):
+    monkeypatch.setattr(
+        "src.search.unified_search.analyze_query",
+        lambda query, optional_video_id=None: QueryPlan(
+            intent="scene_search",
+            scene_query=query,
+            weights=SearchWeights(0.6, 0.4),
+        ),
+    )
+    monkeypatch.setattr("src.search.unified_search.hybrid_search", lambda *args, **kwargs: [])
+
+    result = unified_search(SimpleNamespace(), SimpleNamespace(), SimpleNamespace(), "missing")
+    assert result.result_type == "scene"
+    assert result.top_score == 0.0
+    assert result.is_low_confidence is True
+    assert "No exact result" in result.message

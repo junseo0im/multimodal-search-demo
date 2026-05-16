@@ -32,6 +32,10 @@ class UnifiedSearchResult:
     scenes: list[ScoredCandidate]
     videos: list[VideoCandidate]
     answer_context: str = ""
+    result_type: str = "scene"
+    top_score: float = 0.0
+    is_low_confidence: bool = False
+    message: str = ""
 
 
 def _video_candidates_from_results(results: list[Any], limit: int = 5) -> list[VideoCandidate]:
@@ -104,6 +108,53 @@ def _merge_scene_results(groups: list[list[ScoredCandidate]], top_k: int) -> lis
     return dedup_adjacent(merged, top_k=top_k)
 
 
+def _top_score(scenes: list[ScoredCandidate], videos: list[VideoCandidate]) -> float:
+    scene_score = float(scenes[0].hybrid_score) if scenes else 0.0
+    video_score = float(videos[0].score) if videos else 0.0
+    return max(scene_score, video_score)
+
+
+def _low_confidence(score: float, has_results: bool) -> bool:
+    return (not has_results) or score < 0.2
+
+
+def _message_for(result_type: str, plan: QueryPlan, has_results: bool, low_confidence: bool) -> str:
+    if not has_results:
+        return "No exact result was found. Showing no candidates for this query."
+    if low_confidence:
+        return "The match confidence is low. Treat the results below as nearby candidates."
+    if result_type == "video":
+        return "Video-level query detected. Showing the best video candidate first."
+    if result_type == "compound":
+        return "Compound query detected. Showing a matched video and the best moment inside it."
+    if result_type == "in_video":
+        return "In-video query detected. Showing the best moment within the selected video context."
+    if result_type == "summary":
+        return "Summary-style query detected. Showing retrieval context for a later answer-generation step."
+    return "Scene-level query detected. Showing the best matching moment first."
+
+
+def _build_result(
+    plan: QueryPlan,
+    scenes: list[ScoredCandidate],
+    videos: list[VideoCandidate],
+    result_type: str,
+) -> UnifiedSearchResult:
+    score = _top_score(scenes, videos)
+    has_results = bool(scenes or videos)
+    low_confidence = _low_confidence(score, has_results)
+    return UnifiedSearchResult(
+        plan=plan,
+        scenes=scenes,
+        videos=videos,
+        answer_context=_answer_context(plan, scenes),
+        result_type=result_type,
+        top_score=score,
+        is_low_confidence=low_confidence,
+        message=_message_for(result_type, plan, has_results, low_confidence),
+    )
+
+
 def unified_search(
     client: QdrantClient,
     bge: BGEEncoder,
@@ -131,7 +182,8 @@ def unified_search(
             video_id=video_filter,
         )
         videos = _video_candidates_from_scenes(scenes)
-        return UnifiedSearchResult(plan=plan, scenes=scenes, videos=videos, answer_context=_answer_context(plan, scenes))
+        result_type = "summary" if plan.intent == "summary" else "in_video"
+        return _build_result(plan, scenes, videos, result_type)
 
     if plan.intent == "video_search":
         raw = text_search(client, bge, plan.video_query or query, collection_name, top_n=max(top_k * 4, 20))
@@ -146,7 +198,7 @@ def unified_search(
             alpha=weights.text,
             beta=weights.image,
         )
-        return UnifiedSearchResult(plan=plan, scenes=scenes, videos=videos)
+        return _build_result(plan, scenes, videos, "video")
 
     if plan.intent == "compound_scene_search" and plan.scope == "video_candidate":
         raw_videos = text_search(client, bge, plan.video_query or query, collection_name, top_n=30)
@@ -166,7 +218,7 @@ def unified_search(
             for video in videos
         ]
         scenes = _merge_scene_results(scene_groups, top_k)
-        return UnifiedSearchResult(plan=plan, scenes=scenes, videos=videos, answer_context=_answer_context(plan, scenes))
+        return _build_result(plan, scenes, videos, "compound")
 
     scenes = hybrid_search(
         client,
@@ -179,4 +231,5 @@ def unified_search(
         beta=weights.image,
     )
     videos = _video_candidates_from_scenes(scenes)
-    return UnifiedSearchResult(plan=plan, scenes=scenes, videos=videos, answer_context=_answer_context(plan, scenes))
+    result_type = "summary" if plan.intent == "summary" else "scene"
+    return _build_result(plan, scenes, videos, result_type)

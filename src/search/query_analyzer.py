@@ -100,6 +100,7 @@ SUMMARY_TERMS = (
     "\uc54c\ub824\uc918",
 )
 IN_VIDEO_TERMS = ("\uc774 \uc601\uc0c1", "\uc548\uc5d0\uc11c", "\uc601\uc0c1\uc5d0\uc11c", "video_id", "short_")
+AMBIGUOUS_CONTEXT_TERMS = ("\uadf8 \uc7a5\uba74", "\uc544\uae4c", "\uadf8\uac70", "\uc774\uac70")
 
 
 def weights_for_query(query: str, query_type: QueryType | None = None) -> SearchWeights:
@@ -143,6 +144,7 @@ def rule_based_analyze(query: str, optional_video_id: str | None = None, reason:
     has_video_terms = _contains_any(normalized, VIDEO_TERMS)
     has_scene_terms = _contains_any(normalized, SCENE_TERMS)
     has_in_video_terms = has_video_id or _contains_any(normalized, IN_VIDEO_TERMS)
+    has_ambiguous_context = _contains_any(normalized, AMBIGUOUS_CONTEXT_TERMS)
     has_visual_terms = _contains_any(normalized, VISUAL_TERMS)
     has_timing_terms = _contains_any(normalized, TIMING_TERMS)
 
@@ -164,7 +166,7 @@ def rule_based_analyze(query: str, optional_video_id: str | None = None, reason:
         intent = "compound_scene_search"
         scope = "video_id" if has_video_id else "video_candidate"
         video_query, scene_query = _split_compound_query(normalized)
-    elif has_in_video_terms and has_scene_terms:
+    elif (has_in_video_terms or has_ambiguous_context) and has_scene_terms:
         intent = "in_video_search"
         scope = "video_id" if has_video_id else "video_candidate"
         video_query, scene_query = _split_compound_query(normalized)
@@ -254,6 +256,7 @@ Rules:
 - Use scene_search for ingredient/action/visual moment searches across all videos.
 - Use video_search when the user mainly wants a relevant video.
 - Use summary when the user asks to summarize, explain, recommend, or list ingredients.
+- If the user says "this video", "that scene", or "earlier" without a video_id, use video_candidate scope rather than inventing an id.
 - Cooking ingredient/action queries often rely on text, ASR, captions, or OCR.
 - Visual state queries should increase image weight.
 

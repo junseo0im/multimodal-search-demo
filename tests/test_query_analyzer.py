@@ -28,3 +28,9 @@ def test_rule_analyzer_summary():
     assert plan.intent == "summary"
     assert plan.needs_generation is True
     assert plan.scope == "video_id"
+
+
+def test_rule_analyzer_ambiguous_context_scene():
+    plan = rule_based_analyze("\uadf8 \uc7a5\uba74 \ubcf4\uc5ec\uc918")
+    assert plan.intent == "in_video_search"
+    assert plan.scope == "video_candidate"

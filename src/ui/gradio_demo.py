@@ -65,12 +65,27 @@ def format_result(candidate: Any, rank: int) -> dict[str, Any]:
     }
 
 
-def make_top_card(row: dict[str, Any] | None, clip_message: str = "") -> str:
+def make_top_card(
+    row: dict[str, Any] | None,
+    result: UnifiedSearchResult,
+    clip_message: str = "",
+) -> str:
     if not row:
-        return "No results."
+        return f"### No Scene Result\n\n{result.message or 'No results.'}"
+
+    title_by_type = {
+        "compound": "Top Moment in Matched Video",
+        "in_video": "Top Moment in Selected Video",
+        "summary": "Retrieved Context Preview",
+        "scene": "Top Moment",
+    }
+    title = title_by_type.get(result.result_type, "Top Moment")
+    confidence_label = "candidate" if result.is_low_confidence else "match"
 
     lines = [
-        f"### Top-1: {row.get('recipe_name') or '(no recipe name)'}",
+        f"### {title}: {row.get('recipe_name') or '(no recipe name)'}",
+        f"- **status:** {confidence_label}",
+        f"- **message:** {result.message}",
         f"- **video_id:** `{row.get('video_id', '')}`",
         f"- **time:** {row.get('time', '')}",
         f"- **caption:** {row.get('caption', '')}",
@@ -91,11 +106,14 @@ def make_top_card(row: dict[str, Any] | None, clip_message: str = "") -> str:
 
 def make_video_top_card(result: UnifiedSearchResult) -> str:
     if not result.videos:
-        return "No video results."
+        return f"### No Video Result\n\n{result.message or 'No video results.'}"
 
     video = result.videos[0]
+    confidence_label = "candidate" if result.is_low_confidence else "match"
     lines = [
         f"### Top Video: {video.recipe_name or '(no recipe name)'}",
+        f"- **status:** {confidence_label}",
+        f"- **message:** {result.message}",
         f"- **video_id:** `{video.video_id}`",
         f"- **score:** `{video.score:.4f}`",
         f"- **matched scenes:** `{video.scene_count}`",
@@ -103,7 +121,24 @@ def make_video_top_card(result: UnifiedSearchResult) -> str:
     if video.youtube_url:
         lines.append(f"- **YouTube:** {video.youtube_url}")
     lines.append("")
-    lines.append("This query was interpreted as a video-level search, so the main answer is a video candidate. Related scenes are shown below as supporting evidence.")
+    lines.append("Related scenes are shown below as supporting evidence.")
+    return "\n".join(lines)
+
+
+def make_summary_top_card(result: UnifiedSearchResult, row: dict[str, Any] | None) -> str:
+    lines = [
+        "### Summary Context",
+        f"- **message:** {result.message}",
+        "- **generation:** not enabled in this step; retrieved context is prepared below.",
+    ]
+    if row:
+        lines.extend(
+            [
+                f"- **top video_id:** `{row.get('video_id', '')}`",
+                f"- **top time:** {row.get('time', '')}",
+                f"- **top caption:** {row.get('caption', '')}",
+            ]
+        )
     return "\n".join(lines)
 
 
@@ -134,6 +169,10 @@ def make_debug_card(result: UnifiedSearchResult) -> str:
         f"- **scene_query:** {plan.scene_query or '(none)'}",
         f"- **weights:** text `{plan.weights.text:.2f}` / image `{plan.weights.image:.2f}`",
         f"- **needs_generation:** `{plan.needs_generation}`",
+        f"- **result_type:** `{result.result_type}`",
+        f"- **top_score:** `{result.top_score:.4f}`",
+        f"- **low_confidence:** `{result.is_low_confidence}`",
+        f"- **message:** {result.message}",
     ]
     if plan.fallback_reason:
         lines.append(f"- **fallback:** {plan.fallback_reason}")
@@ -241,12 +280,15 @@ def create_app(
         table = pd.DataFrame(columns=DISPLAY_COLUMNS) if table.empty else table[DISPLAY_COLUMNS]
 
         top_row = rows[0] if rows else None
-        if result.plan.intent == "video_search":
+        if result.result_type == "video":
             clip_path = None
             top_card = make_video_top_card(result)
+        elif result.result_type == "summary":
+            clip_path = None
+            top_card = make_summary_top_card(result, top_row)
         else:
             clip_path, clip_message = create_clip(top_row)
-            top_card = make_top_card(top_row, clip_message)
+            top_card = make_top_card(top_row, result, clip_message)
         videos_card = make_videos_card(result)
         debug_card = make_debug_card(result) if show_debug else ""
         return top_card, videos_card, table, frames, clip_path, debug_card
