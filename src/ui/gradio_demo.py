@@ -89,6 +89,24 @@ def make_top_card(row: dict[str, Any] | None, clip_message: str = "") -> str:
     return "\n".join(lines)
 
 
+def make_video_top_card(result: UnifiedSearchResult) -> str:
+    if not result.videos:
+        return "No video results."
+
+    video = result.videos[0]
+    lines = [
+        f"### Top Video: {video.recipe_name or '(no recipe name)'}",
+        f"- **video_id:** `{video.video_id}`",
+        f"- **score:** `{video.score:.4f}`",
+        f"- **matched scenes:** `{video.scene_count}`",
+    ]
+    if video.youtube_url:
+        lines.append(f"- **YouTube:** {video.youtube_url}")
+    lines.append("")
+    lines.append("This query was interpreted as a video-level search, so the main answer is a video candidate. Related scenes are shown below as supporting evidence.")
+    return "\n".join(lines)
+
+
 def make_videos_card(result: UnifiedSearchResult) -> str:
     if not result.videos:
         return "No related videos."
@@ -223,8 +241,12 @@ def create_app(
         table = pd.DataFrame(columns=DISPLAY_COLUMNS) if table.empty else table[DISPLAY_COLUMNS]
 
         top_row = rows[0] if rows else None
-        clip_path, clip_message = create_clip(top_row)
-        top_card = make_top_card(top_row, clip_message)
+        if result.plan.intent == "video_search":
+            clip_path = None
+            top_card = make_video_top_card(result)
+        else:
+            clip_path, clip_message = create_clip(top_row)
+            top_card = make_top_card(top_row, clip_message)
         videos_card = make_videos_card(result)
         debug_card = make_debug_card(result) if show_debug else ""
         return top_card, videos_card, table, frames, clip_path, debug_card
