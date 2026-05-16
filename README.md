@@ -2,6 +2,8 @@
 
 A scene-level search demo for Korean cooking short-form videos. The system indexes short videos as searchable scene segments, then combines text retrieval and visual retrieval to find the most relevant moment for a natural-language query.
 
+Built with Colab, Qdrant Cloud, Gradio, BGE-M3, fine-tuned SigLIP2, and an optional Gemini-powered query analyzer.
+
 ![Pipeline overview](docs/assets/architecture.svg)
 
 ## Overview
@@ -78,7 +80,8 @@ src/
   data/      metadata preparation
   models/    BGE-M3 and SigLIP2 encoder wrappers
   index/     Qdrant Cloud indexing
-  search/    text/image/hybrid search, fusion, deduplication
+  search/    text/image/hybrid search, fusion, query analyzer, unified search
+  generation/ optional Gemini answer generation
   ui/        Gradio demo
   eval/      evaluation metrics and runner
 
