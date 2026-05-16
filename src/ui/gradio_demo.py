@@ -5,15 +5,17 @@ import shutil
 import subprocess
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 import gradio as gr
 import pandas as pd
 
+from src.generation.answer_generator import generate_answer
 from src.index.build_index import COLLECTION_NAME
 from src.index.qdrant_client import get_qdrant_client
 from src.models.bge_encoder import BGEEncoder
 from src.models.siglip_encoder import SigLIPEncoder
-from src.search.hybrid_search import hybrid_search, image_search, text_search
+from src.search.unified_search import UnifiedSearchResult, unified_search
 
 
 DISPLAY_COLUMNS = [
@@ -40,6 +42,7 @@ SCOPE_ALL = "\uc804\uccb4 \uc601\uc0c1 \uac80\uc0c9"
 SCOPE_IN_VIDEO = "\ud2b9\uc815 video_id \ub0b4\ubd80 \uac80\uc0c9"
 CLIP_DIR = Path("/tmp/cooking_search_clips")
 FRAME_CACHE_DIR = Path("/tmp/cooking_search_frames")
+FULL_VIDEO_CACHE_DIR = Path("/tmp/cooking_search_full_videos")
 
 
 def format_result(candidate: Any, rank: int) -> dict[str, Any]:
@@ -65,12 +68,27 @@ def format_result(candidate: Any, rank: int) -> dict[str, Any]:
     }
 
 
-def make_top_card(row: dict[str, Any] | None, clip_message: str = "") -> str:
+def make_top_card(
+    row: dict[str, Any] | None,
+    result: UnifiedSearchResult,
+    clip_message: str = "",
+) -> str:
     if not row:
-        return "No results."
+        return f"### No Scene Result\n\n{result.message or 'No results.'}"
+
+    title_by_type = {
+        "compound": "Top Moment in Matched Video",
+        "in_video": "Top Moment in Selected Video",
+        "summary": "Retrieved Context Preview",
+        "scene": "Top Moment",
+    }
+    title = title_by_type.get(result.result_type, "Top Moment")
+    confidence_label = "candidate" if result.is_low_confidence else "match"
 
     lines = [
-        f"### Top-1: {row.get('recipe_name') or '(no recipe name)'}",
+        f"### {title}: {row.get('recipe_name') or '(no recipe name)'}",
+        f"- **status:** {confidence_label}",
+        f"- **message:** {result.message}",
         f"- **video_id:** `{row.get('video_id', '')}`",
         f"- **time:** {row.get('time', '')}",
         f"- **caption:** {row.get('caption', '')}",
@@ -86,6 +104,83 @@ def make_top_card(row: dict[str, Any] | None, clip_message: str = "") -> str:
         lines.append(f"- **YouTube:** {youtube_url}")
     if clip_message:
         lines.append(f"- **clip:** {clip_message}")
+    return "\n".join(lines)
+
+
+def make_video_top_card(result: UnifiedSearchResult) -> str:
+    if not result.videos:
+        return f"### No Video Result\n\n{result.message or 'No video results.'}"
+
+    video = result.videos[0]
+    confidence_label = "candidate" if result.is_low_confidence else "match"
+    lines = [
+        f"### Top Video: {video.recipe_name or '(no recipe name)'}",
+        f"- **status:** {confidence_label}",
+        f"- **message:** {result.message}",
+        f"- **video_id:** `{video.video_id}`",
+        f"- **score:** `{video.score:.4f}`",
+        f"- **matched scenes:** `{video.scene_count}`",
+    ]
+    if video.youtube_url:
+        lines.append(f"- **YouTube:** {video.youtube_url}")
+    lines.append("")
+    lines.append("Related scenes are shown below as supporting evidence.")
+    return "\n".join(lines)
+
+
+def make_summary_top_card(result: UnifiedSearchResult, row: dict[str, Any] | None) -> str:
+    lines = [
+        "### Summary Context",
+        f"- **message:** {result.message}",
+        "- **generation:** not enabled in this step; retrieved context is prepared below.",
+    ]
+    if row:
+        lines.extend(
+            [
+                f"- **top video_id:** `{row.get('video_id', '')}`",
+                f"- **top time:** {row.get('time', '')}",
+                f"- **top caption:** {row.get('caption', '')}",
+            ]
+        )
+    return "\n".join(lines)
+
+
+def make_videos_card(result: UnifiedSearchResult) -> str:
+    if not result.videos:
+        return "No related videos."
+    lines = ["### Related Videos"]
+    for idx, video in enumerate(result.videos, start=1):
+        title = video.recipe_name or "(no recipe name)"
+        line = f"{idx}. **{title}** - `{video.video_id}` - score `{video.score:.4f}`"
+        if video.scene_count:
+            line += f" - scenes `{video.scene_count}`"
+        if video.youtube_url:
+            line += f" - {video.youtube_url}"
+        lines.append(line)
+    return "\n".join(lines)
+
+
+def make_debug_card(result: UnifiedSearchResult) -> str:
+    plan = result.plan
+    lines = [
+        "### Analyzer Debug",
+        f"- **analyzer:** `{plan.analyzer}`",
+        f"- **intent:** `{plan.intent}`",
+        f"- **scope:** `{plan.scope}`",
+        f"- **query_type:** `{plan.query_type}`",
+        f"- **video_query:** {plan.video_query or '(none)'}",
+        f"- **scene_query:** {plan.scene_query or '(none)'}",
+        f"- **weights:** text `{plan.weights.text:.2f}` / image `{plan.weights.image:.2f}`",
+        f"- **needs_generation:** `{plan.needs_generation}`",
+        f"- **result_type:** `{result.result_type}`",
+        f"- **top_score:** `{result.top_score:.4f}`",
+        f"- **low_confidence:** `{result.is_low_confidence}`",
+        f"- **message:** {result.message}",
+    ]
+    if plan.fallback_reason:
+        lines.append(f"- **fallback:** {plan.fallback_reason}")
+    if result.answer_context:
+        lines.extend(["", "### Answer-Ready Context", "```text", result.answer_context, "```"])
     return "\n".join(lines)
 
 
@@ -132,6 +227,41 @@ def create_clip(row: dict[str, Any] | None) -> tuple[str | None, str]:
     return str(clip_path), "Generated a Top-1 preview clip."
 
 
+def cache_full_video_for_gradio(video_path: str, video_id: str) -> str | None:
+    if not video_path or not os.path.exists(video_path):
+        return None
+
+    FULL_VIDEO_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    source = Path(video_path)
+    safe_video_id = (video_id or source.stem).replace("/", "_").replace("\\", "_")
+    target = FULL_VIDEO_CACHE_DIR / f"{safe_video_id}{source.suffix or '.mp4'}"
+    try:
+        if not target.exists() or target.stat().st_size != source.stat().st_size:
+            shutil.copy2(source, target)
+    except OSError:
+        return None
+    return str(target)
+
+
+def make_full_video_html(row: dict[str, Any] | None) -> str:
+    if not row:
+        return "<p>No full video preview is available.</p>"
+
+    cached = cache_full_video_for_gradio(str(row.get("video_path", "")), str(row.get("video_id", "")))
+    if not cached:
+        return "<p>Full video preview is unavailable. Use the clip preview and result table instead.</p>"
+
+    start_time = max(0.0, float(row.get("start_time", 0.0) or 0.0))
+    label = f"{row.get('recipe_name', '')} / {row.get('video_id', '')} / {row.get('time', '')}"
+    file_url = quote(cached)
+    return f"""
+<div>
+  <p><strong>Full video at timestamp</strong><br>{label}</p>
+  <video controls preload="metadata" style="width: 100%; max-height: 520px;" src="/file={file_url}#t={start_time:.1f}"></video>
+</div>
+""".strip()
+
+
 def cache_frame_for_gradio(frame_path: str, rank: int) -> str | None:
     if not frame_path or not os.path.exists(frame_path):
         return None
@@ -160,25 +290,24 @@ def create_app(
 
     def run(
         query: str,
-        mode: str,
-        scope: str,
         top_k: int,
         video_id: str,
-    ) -> tuple[str, pd.DataFrame, list[str], str | None]:
+        show_debug: bool,
+    ) -> tuple[str, str, str, pd.DataFrame, list[str], str | None, str, str]:
         try:
-            video_filter = video_id.strip() if scope == SCOPE_IN_VIDEO else None
-            if mode == "text-only":
-                raw = text_search(client, bge, query, collection_name, top_k, video_filter)
-                rows = [format_result(item, i + 1) for i, item in enumerate(raw)]
-            elif mode == "image-only":
-                raw = image_search(client, siglip, query, collection_name, top_k, video_filter)
-                rows = [format_result(item, i + 1) for i, item in enumerate(raw)]
-            else:
-                raw = hybrid_search(client, bge, siglip, query, collection_name, top_k=top_k, video_id=video_filter)
-                rows = [format_result(item, i + 1) for i, item in enumerate(raw)]
+            result = unified_search(
+                client,
+                bge,
+                siglip,
+                query,
+                collection_name,
+                top_k=top_k,
+                optional_video_id=video_id.strip() or None,
+            )
+            rows = [format_result(item, i + 1) for i, item in enumerate(result.scenes)]
         except Exception as exc:
             empty = pd.DataFrame(columns=DISPLAY_COLUMNS)
-            return f"Search failed: `{type(exc).__name__}: {exc}`", empty, [], None
+            return f"Search failed: `{type(exc).__name__}: {exc}`", "", "", empty, [], None, "", ""
 
         frames = [
             cached
@@ -189,8 +318,20 @@ def create_app(
         table = pd.DataFrame(columns=DISPLAY_COLUMNS) if table.empty else table[DISPLAY_COLUMNS]
 
         top_row = rows[0] if rows else None
-        clip_path, clip_message = create_clip(top_row)
-        return make_top_card(top_row, clip_message), table, frames, clip_path
+        if result.result_type == "video":
+            clip_path = None
+            top_card = make_video_top_card(result)
+        elif result.result_type == "summary":
+            clip_path = None
+            top_card = make_summary_top_card(result, top_row)
+        else:
+            clip_path, clip_message = create_clip(top_row)
+            top_card = make_top_card(top_row, result, clip_message)
+        generated_answer = generate_answer(query, result) if result.result_type == "summary" else ""
+        full_video_html = make_full_video_html(top_row)
+        videos_card = make_videos_card(result)
+        debug_card = make_debug_card(result) if show_debug else ""
+        return top_card, generated_answer, videos_card, table, frames, clip_path, full_video_html, debug_card
 
     with gr.Blocks(title="Cooking Shorts Multimodal Search") as demo:
         gr.Markdown("# Cooking Shorts Multimodal Search")
@@ -199,20 +340,24 @@ def create_app(
             for example in EXAMPLE_QUERIES:
                 gr.Button(example).click(lambda value=example: value, outputs=query)
         with gr.Row():
-            mode = gr.Radio(["hybrid", "text-only", "image-only"], value="hybrid", label="Search mode")
-            scope = gr.Radio([SCOPE_ALL, SCOPE_IN_VIDEO], value=SCOPE_ALL, label="Search scope")
             top_k = gr.Slider(1, 10, value=5, step=1, label="Top K")
             video_id = gr.Textbox(label="Optional video_id filter", placeholder="short_001")
+            show_debug = gr.Checkbox(value=True, label="Show analyzer debug")
 
         button = gr.Button("Search")
-        top_card = gr.Markdown(label="Top-1 result")
+        top_card = gr.Markdown(label="Top Answer")
+        generated_answer = gr.Markdown(label="Generated Answer")
         clip = gr.Video(label="Top-1 clip preview")
-        table = gr.Dataframe(label="Results", wrap=True, interactive=False)
+        full_video = gr.HTML(label="Full Video at Timestamp")
+        videos_card = gr.Markdown(label="Related Videos")
+        table = gr.Dataframe(label="Related Scenes", wrap=True, interactive=False)
         gallery = gr.Gallery(label="Representative frames")
+        with gr.Accordion("Advanced", open=True):
+            debug_card = gr.Markdown(label="Analyzer Debug")
         button.click(
             run,
-            inputs=[query, mode, scope, top_k, video_id],
-            outputs=[top_card, table, gallery, clip],
+            inputs=[query, top_k, video_id, show_debug],
+            outputs=[top_card, generated_answer, videos_card, table, gallery, clip, full_video, debug_card],
         )
     return demo
 

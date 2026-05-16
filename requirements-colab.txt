@@ -12,3 +12,4 @@ numpy
 Pillow
 gradio
 opencv-python
+google-genai
